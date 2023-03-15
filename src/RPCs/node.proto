@@ -16,7 +16,7 @@ service NodeService {
 }
 
 message PingRequest {
-  optional string message = 1;
+  optional string address = 1;
 }
 
 message PingReply {

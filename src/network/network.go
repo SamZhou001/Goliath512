@@ -1,28 +1,27 @@
 package main
  
 import (
-	"fmt"
 	"ipfs/node"
+	"ipfs/bnode"
 )
 
 type Network struct {
-	bnodes []node.Node
+	bnode bnode.BNode
 }
 
-func (n *Network) Init(bnodeCount int) {
-	for i := 0; i < bnodeCount; i++ {
-		newNode := new(node.Node)
-		newNode.Init(i, true)
-		n.bnodes = append(n.bnodes, *newNode)
-	}
+func (n *Network) Init() {
+	newNode := new(bnode.BNode)
+	newNode.Init(10001)
+	n.bnode = *newNode
 }
 
-func (n *Network) ShowState() []node.Node {
-	return n.bnodes
+func (n *Network) AddNode(address int) {
+	newNode := new(node.Node)
+	newNode.Init(address, n.bnode.GetId())
 }
 
 func main() {
 	n := new(Network)
-	n.Init(5)
-	fmt.Println(n.ShowState())
+	n.Init()
+	n.AddNode(10002)
 }
