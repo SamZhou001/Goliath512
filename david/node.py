@@ -14,6 +14,7 @@ class Node:
         self.ip = ip
         self.port = port
         self.long_id = int(node_id.hex() ,16)
+        self.kbuckets = [{} for i in range(160)]
     
     def distance_to(self, node: Node) -> int:
         """
