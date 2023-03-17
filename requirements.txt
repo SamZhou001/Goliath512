@@ -1,0 +1,3 @@
+kademlia==2.2.2
+rpcudp==4.0.2
+u-msgpack-python==2.7.2
