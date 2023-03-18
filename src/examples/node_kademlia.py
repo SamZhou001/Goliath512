@@ -13,7 +13,6 @@ log.setLevel(logging.DEBUG)
 
 server = Server()
 
-
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
