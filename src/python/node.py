@@ -3,6 +3,8 @@ from rpyc.utils.server import ThreadedServer
 from rpyc import connect
 import threading
 import random
+import asyncio
+from david.network import Server
 
 import constants
 
@@ -16,6 +18,7 @@ class Node(Service):
         self.connect_prob = config['connect_prob']
         self.dht = None  # Change later
         self.peers = {}  # mapping peerId -> port of connected peers
+        self.dht_port = config['dht_port']
         threading.Timer(constants.PING_TIMER, self.ping).start()
 
     def add_peer(self, peer_id, port):
@@ -31,6 +34,7 @@ class Node(Service):
         conn.root.ping(self.peer_id, self.port)
         threading.Timer(constants.PING_TIMER, self.ping).start()
 
+    # Methods for connecting to peers
     def exposed_send_peers(self, peer_store):
         for peer_id in list(peer_store):
             port = peer_store[peer_id]
@@ -45,15 +49,27 @@ class Node(Service):
 
     def exposed_conn_ack(self, peer_id, port):
         self.add_peer(peer_id, port)
+    
+    # Methods for DHT operations
+    async def get(self, key):
+        server = Server()
+        await server.listen(0)
+        bootstrap_node = ("0.0.0.0", self.dht_port)
+        await server.bootstrap([bootstrap_node])
+        result = await server.get(key)
+        print("Get result:", result)
+        server.stop()
+        return result
+
+    async def set(self, key, val):
+        server = Server()
+        await server.listen(0)
+        bootstrap_node = ("0.0.0.0", self.dht_port)
+        await server.bootstrap([bootstrap_node])
+        await server.set(key, val)
+        print("Set key-value pair")
+        server.stop()
 
 
 if __name__ == "__main__":
-    config = {
-        "peer_id": 50,
-        "port": 7000,
-        "bootstrap_port": 18861,
-        "connect_prob": 1
-    }
-    node = Node(config)
-    t = ThreadedServer(node, port=node.port)
-    t.start()
+    pass

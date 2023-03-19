@@ -38,6 +38,4 @@ class BootstrapNode(Service):
 
 
 if __name__ == "__main__":
-    node = BootstrapNode(18861)
-    t = ThreadedServer(node, port=node.port)
-    t.start()
+    pass
