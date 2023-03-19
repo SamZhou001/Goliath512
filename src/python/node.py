@@ -1,24 +1,30 @@
 from rpyc import Service
-from rpyc.utils.server import ThreadedServer
 from rpyc import connect
 import threading
 import random
-import asyncio
+import string
+import os
+import hashlib
+import shutil
 from david.network import Server
 
 import constants
-
 
 class Node(Service):
     def __init__(self, config):
         self.peer_id = config['peer_id']
         self.port = config['port']
         self.bootstrap_port = config['bootstrap_port']
-        self.storage_path = "./" + str(self.peer_id)
+        self.storage_path = os.path.join("./storage", str(self.peer_id))
+        if not os.path.exists(self.storage_path):
+            os.makedirs(self.storage_path)
+            os.makedirs(os.path.join(self.storage_path, "local"))
+            os.makedirs(os.path.join(self.storage_path, "uploaded"))
         self.connect_prob = config['connect_prob']
         self.dht = None  # Change later
         self.peers = {}  # mapping peerId -> port of connected peers
         self.dht_port = config['dht_port']
+        self.uploading_files = []
         threading.Timer(constants.PING_TIMER, self.ping).start()
 
     def add_peer(self, peer_id, port):
@@ -49,6 +55,9 @@ class Node(Service):
 
     def exposed_conn_ack(self, peer_id, port):
         self.add_peer(peer_id, port)
+
+    def exposed_remove_peer():
+        pass
     
     # Methods for DHT operations
     async def get(self, key):
@@ -67,9 +76,34 @@ class Node(Service):
         bootstrap_node = ("0.0.0.0", self.dht_port)
         await server.bootstrap([bootstrap_node])
         await server.set(key, val)
-        print("Set key-value pair")
+        print(f"Set key-value pair {key}: {val}")
         server.stop()
 
+    # Methods for upload
+    def modify_fname(self, fname):
+        return str(self.peer_id) + "_" + fname + ".txt"
+
+    def generate_file(self, fname, strlen):
+        with open(os.path.join(self.storage_path, "local", self.modify_fname(fname)), 'w') as f:
+            randstr = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(strlen))
+            f.write(randstr)
+    
+    def hash_file(self, fpath):
+        content = ""
+        with open(fpath, 'r') as f:
+            content = f.read()
+        return int(hashlib.sha256(content.encode('utf-8')).hexdigest(), 16) % 10**constants.HASH_DIGITS
+
+    async def upload(self, fname):
+        fpath = os.path.join(self.storage_path, "local", self.modify_fname(fname))
+        if not os.path.exists(fpath):
+            raise Exception("No file found")
+        cid = self.hash_file(fpath)
+        await self.set(cid, self.peer_id)
+        await self.set(self.peer_id, self.port)
+        old_path = os.path.join(self.storage_path, "local", self.modify_fname(fname))
+        new_path = os.path.join(self.storage_path, "uploaded", self.modify_fname(fname))
+        shutil.move(old_path, new_path)
 
 if __name__ == "__main__":
     pass

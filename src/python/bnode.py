@@ -24,18 +24,17 @@ class BootstrapNode(Service):
         self.last_pinged[peer_id] = port
 
     def check_heartbeat(self):
-        for peer_id in list(self.peer_store):
-            if peer_id not in list(self.last_pinged):
+        for peer_id in self.peer_store:
+            if peer_id not in self.last_pinged:
                 self.process_dead_node(peer_id)
         self.last_pinged = {}
         threading.Timer(constants.PING_TIMER, self.check_heartbeat).start()
 
     def process_dead_node(self, dead_node):
         del self.peer_store[dead_node]
-        for peer_id in list(self.last_pinged):
+        for peer_id in self.last_pinged:
             conn = connect('localhost', self.last_pinged[peer_id])
             conn.root.remove_peer(dead_node)
-
 
 if __name__ == "__main__":
     pass

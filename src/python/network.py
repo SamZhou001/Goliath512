@@ -3,6 +3,7 @@ import multiprocessing
 import time
 import asyncio
 from david.network import Server
+import shutil, os
 
 from node import Node
 from bnode import BootstrapNode
@@ -14,6 +15,8 @@ class Network():
         self.bnodePort = bnodePort
         self.bnode = BootstrapNode(bnodePort)
         self.nodes = {}  # Map from peer_id of each node to the node itself; makes it easier to call individual node functions
+        shutil.rmtree('./storage')
+        os.makedirs('./storage')
         worker = multiprocessing.Process(
             target=self.add_job, args=(self.bnode,))
         worker.start()
@@ -33,7 +36,6 @@ class Network():
         loop.set_debug(True)
 
         loop.run_until_complete(server.listen(port))
-        print(f"DHT starts at port {port}")
 
         try:
             loop.run_forever()
@@ -48,9 +50,9 @@ class Network():
         t.start()
 
 async def test(network):
-    await network.nodes[100].set('hi', 'jerry')
+    network.nodes[100].generate_file("hi", 40)
     time.sleep(1)
-    await network.nodes[100].get('hi')
+    await network.nodes[100].upload("hi")
 
 if __name__ == "__main__":
     network = Network(constants.BOOTSTRAP_PORT)
