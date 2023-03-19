@@ -1,0 +1,7 @@
+version: '3.9'
+services:
+  david-bootstrap:
+    image: david-bootstrap-node
+    build: ./src/david
+    restart: always
+    network_mode: "host"
