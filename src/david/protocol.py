@@ -18,20 +18,21 @@ class DavidProtocol(RPCProtocol):
         kbucket_idx = math.floor(math.log(xor_dist, 2))
         kbucket = self.kbuckets[kbucket_idx]
         if nodeid in kbucket:
-            kbucket.move_to_end(nodeid, last=False)
+            kbucket.move_to_end(nodeid)
         else:
             if len(kbucket) < 20:
                 kbucket[nodeid] = sender_addr
             else:
-                last_nodeid = next(reversed(kbucket))
-                last_node_addr = kbucket[last_nodeid]
-                result = await self.call_ping(last_node_addr[0], last_node_addr[1])
+                lru_nodeid = next(iter(kbucket))
+                lru_node_addr = kbucket[lru_nodeid]
+                result = await self.call_ping(lru_node_addr[0], lru_node_addr[1], lru_nodeid, 
+                                              from_update_kbucket=True)
                 # result will be a tuple - first arg is a boolean indicating whether a response
                 # was received, and the second argument is the response if one was received.
                 if result[0]:
-                    kbucket.move_to_end(last_nodeid, last=False)
+                    kbucket.move_to_end(lru_nodeid)
                 else:
-                    kbucket.pop(last_nodeid)
+                    kbucket.pop(lru_nodeid)
                     kbucket[nodeid] = sender_addr
         log.debug(f'Updated {kbucket_idx}th kbucket to be {kbucket}')
 
@@ -55,14 +56,23 @@ class DavidProtocol(RPCProtocol):
     async def call_store(self, node_to_ask, key, value):
         address = (node_to_ask.ip, node_to_ask.port)
         result = await self.store(address, self.source_node.id, key, value)
+        if result[0]:
+            await self.update_kbucket(address, node_to_ask.id)
         return result
 
     async def call_find_value(self, node_to_ask, key):
         address = (node_to_ask.ip, node_to_ask.port)
         result = await self.find_value(address, self.source_node.id, key)
+        if result[0]:
+            await self.update_kbucket(address, node_to_ask.id)
         return result[1]
     
-    async def call_ping(self, node_to_ask_ip, node_to_ask_port):
+    async def call_ping(self, node_to_ask_ip, node_to_ask_port, 
+                        node_to_ask_id, from_update_kbucket=False):
         address = (node_to_ask_ip, node_to_ask_port)
         result = await self.ping(address, self.source_node.id)
+        # Don't update kbucket if the call_ping() was invoked by an update_kbucket()
+        # to avoid infinite loop of pings
+        if from_update_kbucket == False and result[0]:
+            await self.update_kbucket(address, node_to_ask_id)
         return result
