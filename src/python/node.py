@@ -111,6 +111,23 @@ class Node(Service):
             content = f.read()
         return int(hashlib.sha256(content.encode('utf-8')).hexdigest(), 16) % 10**constants.HASH_DIGITS
 
+    async def download(self, cid):
+        for peer, port in self.peers.items():
+            conn = connect('localhost', port)
+            if (conn.root.has_file(cid, self.peer_id, self.port)):
+                print("File downloaded. CID: " + cid)
+                return
+        # assume get result will be [(ip, port)]
+        result = self.get(cid)
+        for peer in result:
+            ip = peer[0]
+            port = peer[1]
+            conn = connect(ip, port)
+            if (conn.root.has_file(cid, self.peer_id, self.port)):
+                print("File downloaded. CID: " + cid)
+                return
+        print("Failed to download file")
+
     async def upload(self, fname):
         fpath = os.path.join(self.storage_path, "local",
                              self.modify_fname(fname))
