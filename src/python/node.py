@@ -117,11 +117,11 @@ class Node(Service):
             if (conn.root.has_file(cid, self.peer_id, self.port)):
                 print("File downloaded. CID: " + cid)
                 return
-        # assume get result will be [(ip, port)]
+        # assume get result will be [(node_id, ip, port)]
         result = self.get(cid)
         for peer in result:
-            ip = peer[0]
-            port = peer[1]
+            ip = peer[1]
+            port = peer[2]
             conn = connect(ip, port)
             if (conn.root.has_file(cid, self.peer_id, self.port)):
                 print("File downloaded. CID: " + cid)
