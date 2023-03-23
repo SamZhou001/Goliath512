@@ -1,5 +1,6 @@
 from rpyc import Service
 from rpyc import connect
+from rpyc.utils.classic import download
 import threading
 import random
 import string
@@ -9,6 +10,7 @@ import shutil
 from david.network import Server
 
 import constants
+
 
 class Node(Service):
     def __init__(self, config):
@@ -24,7 +26,6 @@ class Node(Service):
         self.dht = None  # Change later
         self.peers = {}  # mapping peerId -> port of connected peers
         self.dht_port = config['dht_port']
-        self.uploading_files = []
         threading.Timer(constants.PING_TIMER, self.ping).start()
 
     def add_peer(self, peer_id, port):
@@ -58,12 +59,27 @@ class Node(Service):
 
     def exposed_remove_peer():
         pass
-    
+
+    def exposed_has_file(self, cid, peer_id, port):
+        upload_path = os.path.join(self.storage_path, 'uploaded')
+        file_list = os.listdir(upload_path)
+        for fname in file_list:
+            fpath = os.path.join(upload_path, fname)
+            fcid = self.hash_file(fpath)
+            if fcid == cid:
+                conn = connect('localhost', port)
+                remote_path = os.path.join(
+                    "./storage", str(peer_id), "local", fname)
+                download(conn, remote_path, fpath)
+                return True
+        return False
+
     # Methods for DHT operations
+
     async def get(self, key):
         server = Server()
         await server.listen(0)
-        bootstrap_node = ("0.0.0.0", self.dht_port)
+        bootstrap_node = ("127.0.0.1", self.dht_port)
         await server.bootstrap([bootstrap_node])
         result = await server.get(key)
         print("Get result:", result)
@@ -73,7 +89,7 @@ class Node(Service):
     async def set(self, key, val):
         server = Server()
         await server.listen(0)
-        bootstrap_node = ("0.0.0.0", self.dht_port)
+        bootstrap_node = ("127.0.0.1", self.dht_port)
         await server.bootstrap([bootstrap_node])
         await server.set(key, val)
         print(f"Set key-value pair {key}: {val}")
@@ -85,9 +101,10 @@ class Node(Service):
 
     def generate_file(self, fname, strlen):
         with open(os.path.join(self.storage_path, "local", self.modify_fname(fname)), 'w') as f:
-            randstr = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(strlen))
+            randstr = ''.join(random.choice(
+                string.ascii_letters + string.digits) for _ in range(strlen))
             f.write(randstr)
-    
+
     def hash_file(self, fpath):
         content = ""
         with open(fpath, 'r') as f:
@@ -95,15 +112,19 @@ class Node(Service):
         return int(hashlib.sha256(content.encode('utf-8')).hexdigest(), 16) % 10**constants.HASH_DIGITS
 
     async def upload(self, fname):
-        fpath = os.path.join(self.storage_path, "local", self.modify_fname(fname))
+        fpath = os.path.join(self.storage_path, "local",
+                             self.modify_fname(fname))
         if not os.path.exists(fpath):
             raise Exception("No file found")
         cid = self.hash_file(fpath)
         await self.set(cid, self.peer_id)
         await self.set(self.peer_id, self.port)
-        old_path = os.path.join(self.storage_path, "local", self.modify_fname(fname))
-        new_path = os.path.join(self.storage_path, "uploaded", self.modify_fname(fname))
+        old_path = os.path.join(
+            self.storage_path, "local", self.modify_fname(fname))
+        new_path = os.path.join(
+            self.storage_path, "uploaded", self.modify_fname(fname))
         shutil.move(old_path, new_path)
+
 
 if __name__ == "__main__":
     pass
