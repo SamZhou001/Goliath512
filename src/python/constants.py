@@ -2,7 +2,6 @@ PING_TIMER = 0.5 # Time between each ping
 BOOTSTRAP_PORT = 18861
 SIM_INTERVAL = 1 # Amount of time between each step in network main function
 HASH_DIGITS = 16 # Number of digits of each cid and dhtId
-K_CLOSEST = 3 # Numbers of peers to store each cid-peerId entry
 NODE_CONFIG = [
     {
         "peer_id": 100,
