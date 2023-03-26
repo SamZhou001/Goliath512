@@ -36,7 +36,6 @@ class Network():
         dht_worker = multiprocessing.Process(
             target=self.start_dht_server, args=(config['dht_port'],))
         dht_worker.start()
-        self.workers[node.peer_id] = (node_worker, dht_worker)
 
     def start_dht_server(self, port):
         server = Server()
@@ -55,6 +54,7 @@ class Network():
         t = ThreadedServer(node, port=node.port)
         t.start()
 
+
 def upload(peerId, fname, charCount):
     node = network.nodes[peerId]
     node.generate_file(fname, charCount)
@@ -68,18 +68,20 @@ def upload(peerId, fname, charCount):
     conn.close()
     return cid
 
+
 def download(peerId, cid):
     port = network.nodes[peerId].port
     conn = connect('localhost', port)
     conn.root.download(cid)
     conn.close()
 
+
 async def test(network):
     cid = upload(100, "hi", 40)
     time.sleep(1)
     download(100, cid)
     time.sleep(1)
-    #network.workers[100][0].terminate()
+    # network.workers[100][0].terminate()
 
 if __name__ == "__main__":
     network = Network(constants.BOOTSTRAP_PORT)
@@ -87,4 +89,4 @@ if __name__ == "__main__":
         time.sleep(constants.SIM_INTERVAL)
         network.add_node(config)
         print(f"Add node {config['peer_id']}")
-    #asyncio.run(test(network))
+    # asyncio.run(test(network))
