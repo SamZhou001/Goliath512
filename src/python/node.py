@@ -9,12 +9,13 @@ import os
 import hashlib
 import shutil
 from david.network import Server
+from node_timer import Timer
 
 import constants
 
-
 class Node(Service):
     def __init__(self, config):
+        self.alive = True
         self.peer_id = config['peer_id']
         self.port = config['port']
         self.bootstrap_port = config['bootstrap_port']
@@ -24,26 +25,42 @@ class Node(Service):
             os.makedirs(os.path.join(self.storage_path, "local"))
             os.makedirs(os.path.join(self.storage_path, "uploaded"))
         self.connect_prob = config['connect_prob']
-        self.dht = None  # Change later
         self.peers = {}  # mapping peerId -> port of connected peers
         self.dht_port = config['dht_port']
-        threading.Timer(constants.PING_TIMER, self.ping).start()
+        self.timer = None
+        self.timer_init = False
+        self.init_timer()
+
+    def execute_if_alive(func):
+        def wrapper(self, *args, **kwargs):
+            if self.alive:
+                func(self, *args, **kwargs)
+        return wrapper
+    
+    # Methods for pinging and adding peers
+    def init_timer(self):
+        if not self.timer:
+            self.timer = Timer(self.port, False)
+            self.timer_init = True
+    
+    @execute_if_alive
+    def exposed_ping(self):
+        conn = connect('localhost', self.bootstrap_port)
+        conn.root.ping(self.peer_id, self.port)
+        conn.close()
 
     def add_peer(self, peer_id, port):
         print(f'Peer {self.peer_id} adds peer {peer_id}')
         self.peers[peer_id] = port
 
     # remove dead peers
+    @execute_if_alive
     def exposed_remove_peer(self, peer_id):
-        del self.peers[peer_id]
-
-    def ping(self):
-        conn = connect('localhost', self.bootstrap_port)
-        conn.root.ping(self.peer_id, self.port)
-        conn.close()
-        threading.Timer(constants.PING_TIMER, self.ping).start()
+        if peer_id in self.peers:
+            del self.peers[peer_id]
 
     # Methods for connecting to peers
+    @execute_if_alive
     def exposed_send_peers(self, peer_store):
         for peer_id in list(peer_store):
             port = peer_store[peer_id]
@@ -51,6 +68,7 @@ class Node(Service):
             conn.root.conn_request(self.peer_id, self.port, self.connect_prob)
             conn.close()
 
+    @execute_if_alive
     def exposed_conn_request(self, peer_id, port, connect_prob):
         if random.random() < min(connect_prob, self.connect_prob):
             self.add_peer(peer_id, port)
@@ -58,14 +76,11 @@ class Node(Service):
             conn.root.conn_ack(self.peer_id, self.port)
             conn.close()
 
+    @execute_if_alive
     def exposed_conn_ack(self, peer_id, port):
         self.add_peer(peer_id, port)
 
-    def exposed_remove_peer():
-        pass
-
     # Methods for DHT operations
-
     async def get(self, key):
         server = Server()
         await server.listen(0)
@@ -113,6 +128,7 @@ class Node(Service):
             self.storage_path, "uploaded", self.modify_fname(fname))
         shutil.move(fpath, new_path)
 
+    @execute_if_alive  
     def exposed_upload(self, fname):
         asyncio.run(self.upload(fname))
 
@@ -133,6 +149,7 @@ class Node(Service):
                 return True
         return False
 
+    @execute_if_alive
     def exposed_has_file(self, cid, peer_id, port):
         return self.has_file(cid, peer_id, port)
     
@@ -161,8 +178,17 @@ class Node(Service):
             conn.close()
         print("Failed to download file")
 
+    @execute_if_alive
     def exposed_download(self, cid):
         asyncio.run(self.download(cid))
+    
+    # Other methods
+    def exposed_kill(self):
+        self.alive = False
+        self.peers = {}
+
+    def exposed_revive(self):
+        self.alive = True
 
 if __name__ == "__main__":
     pass
