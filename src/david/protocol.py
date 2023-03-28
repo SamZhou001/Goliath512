@@ -104,4 +104,17 @@ class DavidProtocol(RPCProtocol):
             await self.update_kbucket(address, node_to_ask_id)
         return result
     
-    
+    # Node lookup
+    async def slingshot(self):
+        queried = set()
+        k_closest = []
+        while True:
+            k_closest = self.find_kclosest_to_self()
+            for triple in k_closest:
+                # node id is triple[2]
+                if triple[2] not in queried:
+                    self.find_node((triple[0], triple[1]), self.source_node.id)
+                    queried.add(triple[2])
+                    continue
+            break
+        return k_closest
