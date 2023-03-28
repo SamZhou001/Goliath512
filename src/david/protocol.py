@@ -72,11 +72,12 @@ class DavidProtocol(RPCProtocol):
                 port = bucket[nodeid][1]
                 heapq.heappush(h, (xor_dist, (ip, port, nodeid)))
         for i in range(20):
+            if len(h) == 0:
+                break
             popped = heapq.heappop(h)
             closest.append(popped[1])
             # If nothing else to pop
-            if len(h) == 0:
-                break
+        log.debug(f"k-closest{self.source_node.id} is *aware* of is {closest}")
         return closest   
 
 
@@ -117,4 +118,5 @@ class DavidProtocol(RPCProtocol):
                     queried.add(triple[2])
                     continue
             break
+        log.debug(f"*Actual* k-closest to {self.source_node.id} is {k_closest}")
         return k_closest
