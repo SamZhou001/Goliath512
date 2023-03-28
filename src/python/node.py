@@ -10,6 +10,7 @@ import hashlib
 import shutil
 from david.network import Server
 from node_timer import Timer
+import time
 
 import constants
 
@@ -27,15 +28,21 @@ class Node(Service):
         self.connect_prob = config['connect_prob']
         self.peers = {}  # mapping peerId -> port of connected peers
         self.dht_port = config['dht_port']
+        self.region = config['region']
         self.timer = None
         self.timer_init = False
         self.init_timer()
 
-    def execute_if_alive(func):
+    def rpc(func):
         def wrapper(self, *args, **kwargs):
             if self.alive:
                 func(self, *args, **kwargs)
         return wrapper
+    
+    def calculate_delay(self, region):
+        region_1 = constants.REGIONS.index(self.region)
+        region_2 = constants.REGIONS.index(region)
+        return (constants.BASE_LATENCY + constants.DISTANCES[region_1][region_2] * constants.DELAY_RATE)/1000
     
     # Methods for pinging and adding peers
     def init_timer(self):
@@ -43,10 +50,10 @@ class Node(Service):
             self.timer = Timer(self.port, False)
             self.timer_init = True
     
-    @execute_if_alive
+    @rpc
     def exposed_ping(self):
         conn = connect('localhost', self.bootstrap_port)
-        conn.root.ping(self.peer_id, self.port)
+        conn.root.ping(self.region, self.peer_id, self.port)
         conn.close()
 
     def add_peer(self, peer_id, port):
@@ -54,30 +61,34 @@ class Node(Service):
         self.peers[peer_id] = port
 
     # remove dead peers
-    @execute_if_alive
-    def exposed_remove_peer(self, peer_id):
+    @rpc
+    def exposed_remove_peer(self, region, peer_id):
+        time.sleep(self.calculate_delay(region))
         if peer_id in self.peers:
             del self.peers[peer_id]
 
     # Methods for connecting to peers
-    @execute_if_alive
-    def exposed_send_peers(self, peer_store):
+    @rpc
+    def exposed_send_peers(self, region, peer_store):
+        time.sleep(self.calculate_delay(region))
         for peer_id in list(peer_store):
             port = peer_store[peer_id]
             conn = connect('localhost', port)
-            conn.root.conn_request(self.peer_id, self.port, self.connect_prob)
+            conn.root.conn_request(self.region, self.peer_id, self.port, self.connect_prob)
             conn.close()
 
-    @execute_if_alive
-    def exposed_conn_request(self, peer_id, port, connect_prob):
+    @rpc
+    def exposed_conn_request(self, region, peer_id, port, connect_prob):
+        time.sleep(self.calculate_delay(region))
         if random.random() < min(connect_prob, self.connect_prob):
             self.add_peer(peer_id, port)
             conn = connect('localhost', port)
-            conn.root.conn_ack(self.peer_id, self.port)
+            conn.root.conn_ack(self.region, self.peer_id, self.port)
             conn.close()
 
-    @execute_if_alive
-    def exposed_conn_ack(self, peer_id, port):
+    @rpc
+    def exposed_conn_ack(self, region, peer_id, port):
+        time.sleep(self.calculate_delay(region))
         self.add_peer(peer_id, port)
 
     # Methods for DHT operations
@@ -128,7 +139,7 @@ class Node(Service):
             self.storage_path, "uploaded", self.modify_fname(fname))
         shutil.move(fpath, new_path)
 
-    @execute_if_alive  
+    @rpc  
     def exposed_upload(self, fname):
         asyncio.run(self.upload(fname))
 
@@ -149,8 +160,9 @@ class Node(Service):
                 return True
         return False
 
-    @execute_if_alive
-    def exposed_has_file(self, cid, peer_id, port):
+    @rpc
+    def exposed_has_file(self, region, cid, peer_id, port):
+        time.sleep(self.calculate_delay(region))
         return self.has_file(cid, peer_id, port)
     
     async def download(self, cid):
@@ -159,7 +171,7 @@ class Node(Service):
             return
         for peer, port in self.peers.items():
             conn = connect('localhost', port)
-            if (conn.root.has_file(cid, self.peer_id, self.port)):
+            if (conn.root.has_file(self.region, cid, self.peer_id, self.port)):
                 print("File downloaded. CID: " + cid)
                 conn.close()
                 return
@@ -171,14 +183,14 @@ class Node(Service):
             res = await self.get(peerId)
             port = res[0]['value']
             conn = connect("127.0.0.1", port)
-            if (conn.root.has_file(cid, self.peer_id, self.port)):
+            if (conn.root.has_file(self.region, cid, self.peer_id, self.port)):
                 print("File downloaded. CID: " + cid)
                 conn.close()
                 return
             conn.close()
         print("Failed to download file")
 
-    @execute_if_alive
+    @rpc
     def exposed_download(self, cid):
         asyncio.run(self.download(cid))
     
