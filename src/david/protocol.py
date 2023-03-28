@@ -1,5 +1,8 @@
 import logging
 import math
+import time
+import asyncio
+import heapq
 
 from rpcudp.protocol import RPCProtocol
 from collections import OrderedDict
@@ -13,18 +16,19 @@ class DavidProtocol(RPCProtocol):
         self.storage = storage
         self.kbuckets = [OrderedDict() for i in range(160)]
 
-    async def update_kbucket(self, sender_addr, nodeid):
-        xor_dist = int(self.source_node.id.hex(), 16) ^ int(nodeid.hex(), 16)
+    async def update_kbucket(self, sender_addr, sender_nodeid):
+        xor_dist = int(self.source_node.id.hex(), 16) ^ int(sender_nodeid.hex(), 16)
         kbucket_idx = math.floor(math.log(xor_dist, 2))
         kbucket = self.kbuckets[kbucket_idx]
-        if nodeid in kbucket:
-            kbucket.move_to_end(nodeid)
+        if sender_nodeid in kbucket:
+            kbucket.move_to_end(sender_nodeid)
         else:
             if len(kbucket) < 20:
-                kbucket[nodeid] = sender_addr
+                kbucket[sender_nodeid] = sender_addr
             else:
                 lru_nodeid = next(iter(kbucket))
                 lru_node_addr = kbucket[lru_nodeid]
+                # Address format is ip, then port
                 result = await self.call_ping(lru_node_addr[0], lru_node_addr[1], lru_nodeid, 
                                               from_update_kbucket=True)
                 # result will be a tuple - first arg is a boolean indicating whether a response
@@ -33,7 +37,7 @@ class DavidProtocol(RPCProtocol):
                     kbucket.move_to_end(lru_nodeid)
                 else:
                     kbucket.pop(lru_nodeid)
-                    kbucket[nodeid] = sender_addr
+                    kbucket[sender_nodeid] = sender_addr
         log.debug(f'Updated {kbucket_idx}th kbucket to be {kbucket}')
 
     async def rpc_ping(self, sender, nodeid):
@@ -52,6 +56,29 @@ class DavidProtocol(RPCProtocol):
         await self.update_kbucket(sender, nodeid)
         value = self.storage.get(key, None)
         return {'value': value}
+    
+    async def rpc_find_node(self, sender, sender_nodeid):
+        log.debug(f'got a find_node request from {sender}')
+        await self.update_kbucket(sender, sender_nodeid)
+        return self.find_kclosest_to_self()  
+
+    def find_kclosest_to_self(self):
+        closest = []
+        h = []
+        for bucket in self.kbuckets:
+            for nodeid in bucket.keys():
+                xor_dist = int(self.source_node.id.hex(), 16) ^ int(nodeid.hex(), 16)
+                ip = bucket[nodeid][0]
+                port = bucket[nodeid][1]
+                heapq.heappush(h, (xor_dist, (ip, port, nodeid)))
+        for i in range(20):
+            popped = heapq.heappop(h)
+            closest.append(popped[1])
+            # If nothing else to pop
+            if len(h) == 0:
+                break
+        return closest   
+
 
     async def call_store(self, node_to_ask, key, value):
         address = (node_to_ask.ip, node_to_ask.port)
@@ -76,3 +103,5 @@ class DavidProtocol(RPCProtocol):
         if from_update_kbucket == False and result[0]:
             await self.update_kbucket(address, node_to_ask_id)
         return result
+    
+    
