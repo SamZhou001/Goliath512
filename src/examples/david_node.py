@@ -3,6 +3,7 @@ import logging
 import asyncio
 
 from david.network import Server
+from david.utils import digest
 
 handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -15,7 +16,7 @@ log2 = logging.getLogger('rpcudp')
 log2.addHandler(handler)
 log2.setLevel(logging.DEBUG)
 
-server = Server()
+server = Server(node_id = digest('8000'))
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
