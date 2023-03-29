@@ -16,7 +16,7 @@ log2 = logging.getLogger('rpcudp')
 log2.addHandler(handler)
 log2.setLevel(logging.DEBUG)
 
-server = Server(node_id = digest('8000'))
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -29,6 +29,7 @@ def parse_arguments():
 
 
 def connect_to_bootstrap_node(args):
+    server = Server(node_id = digest('8469'))
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
 
@@ -46,6 +47,7 @@ def connect_to_bootstrap_node(args):
 
 
 def create_bootstrap_node():
+    server = Server(node_id = digest('8000'))
     loop = asyncio.new_event_loop()
     loop.set_debug(True)
 

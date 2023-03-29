@@ -16,9 +16,14 @@ class DavidProtocol(RPCProtocol):
         self.storage = storage
         self.kbuckets = [OrderedDict() for i in range(160)]
 
-    async def update_kbucket(self, sender_addr, sender_nodeid):
+    def get_kbucket_idx(self, sender_nodeid):
         xor_dist = int(self.source_node.id.hex(), 16) ^ int(sender_nodeid.hex(), 16)
-        kbucket_idx = math.floor(math.log(xor_dist, 2))
+        log.debug(f"xor dist is {xor_dist}")
+        return math.floor(math.log(xor_dist, 2))
+
+    async def update_kbucket(self, sender_addr, sender_nodeid):
+        log.debug(f"Getting update kbucket req from {sender_addr}, I am {self.source_node.port}")
+        kbucket_idx = self.get_kbucket_idx(sender_nodeid)
         kbucket = self.kbuckets[kbucket_idx]
         if sender_nodeid in kbucket:
             kbucket.move_to_end(sender_nodeid)
@@ -77,7 +82,7 @@ class DavidProtocol(RPCProtocol):
             popped = heapq.heappop(h)
             closest.append(popped[1])
             # If nothing else to pop
-        log.debug(f"k-closest{self.source_node.id} is *aware* of is {closest}")
+        log.debug(f"k-closest this is *aware* of is {closest}")
         return closest   
 
 
@@ -110,13 +115,38 @@ class DavidProtocol(RPCProtocol):
         queried = set()
         k_closest = []
         while True:
+            added = False
             k_closest = self.find_kclosest_to_self()
             for triple in k_closest:
                 # node id is triple[2]
                 if triple[2] not in queried:
-                    self.find_node((triple[0], triple[1]), self.source_node.id)
+                    result = await self.find_node((triple[0], triple[1]), self.source_node.id)
+                    # if you didn't receive a response
+                    if result[0] == False:
+                        continue
+                    found = result[1]
+                    print(found)
+                    # For the new nodes you found, just add to kbucket
+                    for triple2 in found:
+                        foundid = triple2[2]
+                        # Don't add yourself!
+                        #print(triple2[0], triple2[1])
+                        #print(self.source_node.ip, self.source_node.port)
+                        #if (triple2[0], triple2[1]) == (self.source_node.ip, self.source_node.port):
+                        if triple2[2] == self.source_node.id:
+                            print("continuing")
+                            continue
+                            
+                        # Hack: just add to kbucket directly
+                        idx = self.get_kbucket_idx(foundid)
+                        print(triple2[1], foundid, self.kbuckets[idx])
+                        if foundid not in self.kbuckets[idx]:
+                            print(f"ADDING {triple2[1]}")
+                            self.kbuckets[idx][foundid] = (triple2[0], triple2[1])
+                            added = True
                     queried.add(triple[2])
-                    continue
-            break
-        log.debug(f"*Actual* k-closest to {self.source_node.id} is {k_closest}")
+            #print("KBCUKET", self.kbuckets)
+            if added == False:
+                break
+        log.debug(f"*Actual* k-closest is {k_closest}")
         return k_closest
