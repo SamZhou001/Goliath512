@@ -2,7 +2,7 @@ from rpyc import Service
 from rpyc import connect
 from threading import Thread
 import copy
-from node_timer import Timer
+from node_timer import PingTimer
 import time
 
 import constants
@@ -25,7 +25,7 @@ class BootstrapNode(Service):
     def exposed_ping(self, region, peer_id, port):
         time.sleep(self.calculate_delay(region))
         if not self.timer_init:
-            self.bnode_timer = Timer(self.port, True)
+            self.bnode_timer = PingTimer(self.port, True)
             self.timer_init = True
         # print("Received ping from " + str(peer_id))
         if peer_id not in self.peer_store:

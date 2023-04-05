@@ -18,6 +18,7 @@ class Server:
         self.transport = None
         self.protocol = None
         self.other_server_nodes = None
+        self.alive = True
 
     def stop(self):
         if self.transport is not None:
@@ -48,6 +49,8 @@ class Server:
         return Node(result[1], addr[0], addr[1]) if result[0] else None
     
     async def set(self, key, value):
+        if not self.alive:
+            return
         log.info(f'setting {key} = {value} on network')
         dkey = digest(key)
         return await self.set_digest(dkey, value)
@@ -63,6 +66,8 @@ class Server:
         return any(await asyncio.gather(*results))
 
     async def get(self, key):
+        if not self.alive:
+            return
         log.info(f'Looking up key {key} from network')
         dkey = digest(key)
 
@@ -76,3 +81,9 @@ class Server:
 
         return result
 
+    def kill(self):
+        self.alive = False
+        print('DHT KILLED')
+
+    def revive(self):
+        self.alive = True

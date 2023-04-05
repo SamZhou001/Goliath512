@@ -85,16 +85,14 @@ class Network():
 async def test(network):
     cid = network.upload(100, "hi", 40)
     time.sleep(1)
-    network.download(100, cid)
+    network.download(101, cid)
     time.sleep(1)
-    '''
     network.kill_node(100)
     network.kill_node(101)
     network.kill_node(102)
     time.sleep(2)
     network.revive_node(100)
     network.revive_node(101)
-    '''
 
 if __name__ == "__main__":
     network = Network(constants.BOOTSTRAP_PORT)

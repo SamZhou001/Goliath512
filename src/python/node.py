@@ -2,14 +2,13 @@ import asyncio
 from rpyc import Service
 from rpyc import connect
 from rpyc.utils.classic import download
-import threading
 import random
 import string
 import os
 import hashlib
 import shutil
 from david.network import Server
-from node_timer import Timer
+from node_timer import PingTimer, DownloadTimer
 import time
 
 import constants
@@ -31,6 +30,8 @@ class Node(Service):
         self.region = config['region']
         self.timer = None
         self.timer_init = False
+        self.downloading = None
+        self.download_peer_list = None
         self.init_timer()
 
     def rpc(func):
@@ -47,7 +48,7 @@ class Node(Service):
     # Methods for pinging and adding peers
     def init_timer(self):
         if not self.timer:
-            self.timer = Timer(self.port, False)
+            self.timer = PingTimer(self.port, False)
             self.timer_init = True
     
     @rpc
@@ -72,10 +73,11 @@ class Node(Service):
     def exposed_send_peers(self, region, peer_store):
         time.sleep(self.calculate_delay(region))
         for peer_id in list(peer_store):
-            port = peer_store[peer_id]
-            conn = connect('localhost', port)
-            conn.root.conn_request(self.region, self.peer_id, self.port, self.connect_prob)
-            conn.close()
+            if peer_id != self.peer_id:
+                port = peer_store[peer_id]
+                conn = connect('localhost', port)
+                conn.root.conn_request(self.region, self.peer_id, self.port, self.connect_prob)
+                conn.close()
 
     @rpc
     def exposed_conn_request(self, region, peer_id, port, connect_prob):
@@ -111,6 +113,22 @@ class Node(Service):
         print(f"Set key-value pair {key}: {val}")
         server.stop()
 
+    async def kill_dht(self):
+        server = Server()
+        await server.listen(0)
+        bootstrap_node = ("127.0.0.1", self.dht_port)
+        await server.bootstrap([bootstrap_node])
+        server.kill()
+        server.stop()
+    
+    async def revive_dht(self):
+        server = Server()
+        await server.listen(0)
+        bootstrap_node = ("127.0.0.1", self.dht_port)
+        await server.bootstrap([bootstrap_node])
+        server.revive()
+        server.stop()
+
     # Methods for upload
     def modify_fname(self, fname):
         return str(self.peer_id) + "_" + fname + ".txt"
@@ -133,8 +151,7 @@ class Node(Service):
         if not os.path.exists(fpath):
             raise Exception("No file found")
         cid = self.hash_file(fpath)
-        await self.set(cid, [self.peer_id])
-        await self.set(self.peer_id, self.port)
+        await self.set(cid, [(self.peer_id, self.port)])
         new_path = os.path.join(
             self.storage_path, "uploaded", self.modify_fname(fname))
         shutil.move(fpath, new_path)
@@ -152,43 +169,56 @@ class Node(Service):
             fcid = self.hash_file(fpath)
             if fcid == cid:
                 if peer_id != self.peer_id:
-                    conn = connect('localhost', port)
                     remote_path = os.path.join(
-                        "./storage", str(peer_id), "local", fname)
-                    download(conn, remote_path, fpath)
-                    conn.close()
+                        "./storage", str(peer_id), "uploaded", fname)
+                    shutil.move(fpath, remote_path)
+                    conn = connect('localhost', port)
+                    conn.root.ack_download(cid)
                 return True
         return False
 
     @rpc
     def exposed_has_file(self, region, cid, peer_id, port):
-        time.sleep(self.calculate_delay(region))
+        time.sleep(2 * self.calculate_delay(region))
         return self.has_file(cid, peer_id, port)
     
     async def download(self, cid):
         if self.has_file(cid, self.peer_id, self.port):
             print("Already has file")
             return
-        for peer, port in self.peers.items():
-            conn = connect('localhost', port)
-            if (conn.root.has_file(self.region, cid, self.peer_id, self.port)):
-                print("File downloaded. CID: " + cid)
-                conn.close()
-                return
-            conn.close()
-        # assume get result will be [(node_id, ip, port)]
+        if self.downloading:
+            print("Downloading other file")
+            return
+        self.downloading = cid
         result = await self.get(cid)
-        for peerId in result[0]['value']:
-            print(peerId)
-            res = await self.get(peerId)
-            port = res[0]['value']
-            conn = connect("127.0.0.1", port)
-            if (conn.root.has_file(self.region, cid, self.peer_id, self.port)):
-                print("File downloaded. CID: " + cid)
-                conn.close()
-                return
+        #peer_list = [(100, 8000)]
+        peer_list = result[0]['value']
+        self.download_peer_list = peer_list
+        if not peer_list:
+            print("Downloading failed")
+            return
+        download_timer = DownloadTimer(self.port, cid) # set download timer to prevent blocking forever
+        for peerId, port in peer_list:
+            conn = connect("localhost", port)
+            conn.root.has_file(self.region, cid, self.peer_id, self.port)
             conn.close()
-        print("Failed to download file")
+    
+    @rpc
+    def exposed_ack_download(self, cid):
+        if self.downloading != cid:
+            print("Download done")
+            return
+        print(f"File downloaded. CID: {cid}")
+        asyncio.run(self.set(cid, self.download_peer_list + [(self.peer_id, self.port)]))
+        self.downloading = None
+        self.download_peer_list = None
+
+    @rpc
+    def exposed_download_over(self, cid):
+        if self.downloading == cid: # download still not complete after timer ends
+            print("Downloading has failed")
+            self.downloading = None
+            self.download_peer_list = None
 
     @rpc
     def exposed_download(self, cid):
@@ -198,9 +228,11 @@ class Node(Service):
     def exposed_kill(self):
         self.alive = False
         self.peers = {}
+        asyncio.run(self.kill_dht())
 
     def exposed_revive(self):
         self.alive = True
+        asyncio.run(self.revive_dht())
 
 if __name__ == "__main__":
     pass

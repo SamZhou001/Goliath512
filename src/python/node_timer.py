@@ -3,8 +3,7 @@ from rpyc import connect
 import threading
 import constants
 
-
-class Timer(Service):
+class PingTimer(Service):
     def __init__(self, port, isBnode):
         self.isBnode = isBnode
         self.port = port
@@ -18,6 +17,17 @@ class Timer(Service):
         else:
             conn.root.ping()
             threading.Timer(constants.PING_TIMER, self.ping).start()
+        conn.close()
+
+class DownloadTimer(Service):
+    def __init__(self, port, cid):
+        self.port = port
+        self.cid = cid
+        threading.Timer(constants.DOWNLOAD_TIMER, self.ping).start()
+
+    def ping(self):
+        conn = connect('localhost', self.port)
+        conn.root.download_over(self.cid)
         conn.close()
 
 if __name__ == "__main__":
