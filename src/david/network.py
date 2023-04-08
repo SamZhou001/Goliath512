@@ -76,9 +76,15 @@ class Server:
 
         k_closest = await self.protocol.slingshot()
         k_closest_nodes = [Node(triple[2], triple[0], triple[1]) for triple in k_closest]
-        results = [self.protocol.call_find_value(n, dkey) for n in k_closest_nodes]
+        for n in k_closest_nodes:
+            result = await self.protocol.call_find_value(n, dkey)
+            print("RESULT", result)
+            if result != None and result['value'] != None:
+                return result
+        #results = [self.protocol.call_find_value(n, dkey) for n in k_closest_nodes]
 
-        result = await asyncio.gather(*results)
+        # return first successful result
+        #result = await asyncio.gather(*results)
 
-        return result
+        return None
 
