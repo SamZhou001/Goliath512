@@ -10,8 +10,10 @@ import shutil
 from david.network import Server
 from node_timer import PingTimer, DownloadTimer
 import time
+import threading
 
 import constants
+
 
 class Node(Service):
     def __init__(self, config):
@@ -32,6 +34,7 @@ class Node(Service):
         self.timer_init = False
         self.downloading = None
         self.download_peer_list = None
+        self.threads = []
         self.init_timer()
 
     def rpc(func):
@@ -39,18 +42,18 @@ class Node(Service):
             if self.alive:
                 func(self, *args, **kwargs)
         return wrapper
-    
+
     def calculate_delay(self, region):
         region_1 = constants.REGIONS.index(self.region)
         region_2 = constants.REGIONS.index(region)
         return (constants.BASE_LATENCY + constants.DISTANCES[region_1][region_2] * constants.DELAY_RATE)/1000
-    
+
     # Methods for pinging and adding peers
     def init_timer(self):
         if not self.timer:
             self.timer = PingTimer(self.port, False)
             self.timer_init = True
-    
+
     @rpc
     def exposed_ping(self):
         conn = connect('localhost', self.bootstrap_port)
@@ -76,7 +79,8 @@ class Node(Service):
             if peer_id != self.peer_id:
                 port = peer_store[peer_id]
                 conn = connect('localhost', port)
-                conn.root.conn_request(self.region, self.peer_id, self.port, self.connect_prob)
+                conn.root.conn_request(
+                    self.region, self.peer_id, self.port, self.connect_prob)
                 conn.close()
 
     @rpc
@@ -120,7 +124,7 @@ class Node(Service):
         await server.bootstrap([bootstrap_node])
         server.kill()
         server.stop()
-    
+
     async def revive_dht(self):
         server = Server()
         await server.listen(0)
@@ -156,12 +160,12 @@ class Node(Service):
             self.storage_path, "uploaded", self.modify_fname(fname))
         shutil.move(fpath, new_path)
 
-    @rpc  
+    @rpc
     def exposed_upload(self, fname):
         asyncio.run(self.upload(fname))
 
     # Methods for download
-    def has_file(self, cid, peer_id, port):            
+    def has_file(self, cid, peer_id, port):
         upload_path = os.path.join(self.storage_path, 'uploaded')
         file_list = os.listdir(upload_path)
         for fname in file_list:
@@ -181,7 +185,7 @@ class Node(Service):
     def exposed_has_file(self, region, cid, peer_id, port):
         time.sleep(2 * self.calculate_delay(region))
         return self.has_file(cid, peer_id, port)
-    
+
     async def download(self, cid):
         if self.has_file(cid, self.peer_id, self.port):
             print("Already has file")
@@ -191,39 +195,56 @@ class Node(Service):
             return
         self.downloading = cid
         result = await self.get(cid)
-        #peer_list = [(100, 8000)]
-        peer_list = result[0]['value']
+        peer_list = [(100, 8000), (102, 8002)]
+        print('PRINTING PEER LIST')
+        # peer_list = result[0]['value']
+        print(peer_list)
         self.download_peer_list = peer_list
         if not peer_list:
             print("Downloading failed")
             return
-        download_timer = DownloadTimer(self.port, cid) # set download timer to prevent blocking forever
+        # set download timer to prevent blocking forever
+        download_timer = DownloadTimer(self.port, cid)
         for peerId, port in peer_list:
-            conn = connect("localhost", port)
-            conn.root.has_file(self.region, cid, self.peer_id, self.port)
-            conn.close()
-    
+            t = threading.Thread(target=self.has_file_conn,
+                                 args=(port, cid, ))
+            self.threads.append(t)
+            t.start()
+
+    def has_file_conn(self, port, cid):
+        print("SENDING HAS FILE CONN")
+        conn = connect("localhost", port)
+        conn.root.has_file(self.region, cid, self.peer_id, self.port)
+        conn.close()
+
     @rpc
     def exposed_ack_download(self, cid):
         if self.downloading != cid:
             print("Download done")
             return
         print(f"File downloaded. CID: {cid}")
-        asyncio.run(self.set(cid, self.download_peer_list + [(self.peer_id, self.port)]))
+        asyncio.run(self.set(cid, self.download_peer_list +
+                    [(self.peer_id, self.port)]))
         self.downloading = None
         self.download_peer_list = None
+        if self.threads:
+            for t in self.threads:
+                t.join()
 
     @rpc
     def exposed_download_over(self, cid):
-        if self.downloading == cid: # download still not complete after timer ends
+        if self.downloading == cid:  # download still not complete after timer ends
             print("Downloading has failed")
             self.downloading = None
             self.download_peer_list = None
+            if self.threads:
+                for t in self.threads:
+                    t.join()
 
     @rpc
     def exposed_download(self, cid):
         asyncio.run(self.download(cid))
-    
+
     # Other methods
     def exposed_kill(self):
         self.alive = False
@@ -233,6 +254,7 @@ class Node(Service):
     def exposed_revive(self):
         self.alive = True
         asyncio.run(self.revive_dht())
+
 
 if __name__ == "__main__":
     pass
