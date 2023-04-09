@@ -210,8 +210,10 @@ class Node(Service):
             t.start()
 
     def has_file_conn(self, port, cid):
-        with connect("localhost", port) as conn:
-            conn.root.has_file(self.region, cid, self.peer_id, self.port)
+        conn = connect("localhost", port)
+        conn._config['sync_request_timeout'] = None
+        conn.root.has_file(self.region, cid, self.peer_id, self.port)
+        conn.close()
 
     @rpc
     def exposed_ack_download(self, cid):
