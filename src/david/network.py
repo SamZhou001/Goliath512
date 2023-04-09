@@ -40,8 +40,6 @@ class Server:
         log.debug(f'Attempting to bootstrap node with {len(addrs)} initial contacts')
         coroutine_objects = list(map(self.bootstrap_node, addrs))
         gathered = await asyncio.gather(*coroutine_objects)
-        #self.other_server_nodes = [node for node in gathered if node is not None]
-        #return self.other_server_nodes 
 
     async def bootstrap_node(self, addr):
         result = await self.protocol.call_ping(addr[0], addr[1], digest(str(addr[1])))
@@ -61,7 +59,6 @@ class Server:
         k_closest_nodes = [Node(triple[2], triple[0], triple[1]) for triple in k_closest]
         log.debug(f"k_closest_nodes in set_digest are {k_closest_nodes}")
         results = [self.protocol.call_store(n, dkey, value) for n in k_closest_nodes]
-        #results = [self.protocol.call_store(n, dkey, value) for n in self.other_server_nodes]
 
         # return true only if at least one store call succeeded
         return any(await asyncio.gather(*results))

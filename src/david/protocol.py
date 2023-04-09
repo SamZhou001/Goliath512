@@ -38,8 +38,7 @@ class DavidProtocol(RPCProtocol):
                 # Address format is ip, then port
                 result = await self.call_ping(lru_node_addr[0], lru_node_addr[1], lru_nodeid, 
                                               from_update_kbucket=True)
-                # result will be a tuple - first arg is a boolean indicating whether a response
-                # was received, and the second argument is the response if one was received.
+                # result will be a tuple - first arg is boolean response received, second arg is value
                 if result[0]:
                     kbucket.move_to_end(lru_nodeid)
                 else:
