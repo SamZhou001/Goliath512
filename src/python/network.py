@@ -12,6 +12,16 @@ from node import Node
 from bnode import BootstrapNode
 import constants
 
+"""
+import logging
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+log = logging.getLogger('david')
+log.addHandler(handler)
+log.setLevel(logging.DEBUG)
+"""
+
 
 class Network():
     def __init__(self, bnodePort):
@@ -41,6 +51,11 @@ class Network():
         loop = asyncio.new_event_loop()
         loop.set_debug(True)
         loop.run_until_complete(server.listen(port))
+
+        bootstrap_node = ("0.0.0.0", 8001)
+        loop.run_until_complete(server.bootstrap([bootstrap_node]))
+
+
         try:
             loop.run_forever()
         except KeyboardInterrupt:
@@ -48,6 +63,9 @@ class Network():
         finally:
             server.stop()
             loop.close()
+
+
+
 
     def add_job(self, node):
         t = ThreadedServer(node, port=node.port)
