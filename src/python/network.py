@@ -7,6 +7,7 @@ import shutil
 import os
 from signal import SIGKILL
 from rpyc import connect
+from david.utils import digest
 
 from node import Node
 from bnode import BootstrapNode
@@ -31,9 +32,27 @@ class Network():
         if os.path.exists('./storage'):
             shutil.rmtree('./storage')
         os.makedirs('./storage')
-        worker = multiprocessing.Process(
+        bootstrap_dht_worker = multiprocessing.Process(
+            target=self.create_bootstrap_dht, args=())
+        bootstrap_dht_worker.start()
+        bootstrap_node_worker = multiprocessing.Process(
             target=self.add_job, args=(self.bnode,))
-        worker.start()
+        bootstrap_node_worker.start()
+
+    def create_bootstrap_dht(self):
+        server = Server(node_id = digest(str(constants.BOOTSTRAP_DHT)))
+        loop = asyncio.new_event_loop()
+        loop.set_debug(True)
+
+        loop.run_until_complete(server.listen(constants.BOOTSTRAP_DHT))
+
+        try:
+            loop.run_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            server.stop()
+            loop.close()
 
     def add_node(self, config):
         config['bootstrap_port'] = constants.BOOTSTRAP_PORT
@@ -47,15 +66,14 @@ class Network():
         dht_worker.start()
 
     def start_dht_server(self, port):
-        server = Server()
+        server = Server(node_id = digest(port))
         loop = asyncio.new_event_loop()
         loop.set_debug(True)
         loop.run_until_complete(server.listen(port))
 
-        bootstrap_node = ("0.0.0.0", 8001)
+        bootstrap_node = ('0.0.0.0', constants.BOOTSTRAP_DHT)
         loop.run_until_complete(server.bootstrap([bootstrap_node]))
-
-
+        
         try:
             loop.run_forever()
         except KeyboardInterrupt:
