@@ -87,11 +87,7 @@ class Server:
                 
                 # Return upon the first non-None result
                 if result != None and result["value"] != None:
-                    # cancel the other tasks, we have a result. We need to wait for the cancellations
-                    # to propagate.
-                    for task in unfinished:
-                        task.cancel()
-                    await asyncio.wait(unfinished)
+                    
                     return result
 
             tasks = unfinished

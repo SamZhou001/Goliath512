@@ -8,21 +8,23 @@ from rpcudp.protocol import RPCProtocol
 from collections import OrderedDict
 
 log = logging.getLogger(__name__)
+logging.getLogger("rpcudp").setLevel(logging.WARNING)
+
 
 class DavidProtocol(RPCProtocol):
     def __init__(self, source_node, storage):
-        super().__init__()
+        super().__init__(wait_timeout = 0.5)
         self.source_node = source_node
         self.storage = storage
         self.kbuckets = [OrderedDict() for i in range(160)]
 
     def get_kbucket_idx(self, sender_nodeid):
         xor_dist = int(self.source_node.id.hex(), 16) ^ int(sender_nodeid.hex(), 16)
-        log.debug(f"xor dist is {xor_dist}")
+        #log.debug(f"xor dist is {xor_dist}")
         return math.floor(math.log(xor_dist, 2))
 
     async def update_kbucket(self, sender_addr, sender_nodeid):
-        log.debug(f"Getting update kbucket req from {sender_addr}, I am {self.source_node.port}")
+        #log.debug(f"Getting update kbucket req from {sender_addr}, I am {self.source_node.port}")
         kbucket_idx = self.get_kbucket_idx(sender_nodeid)
         kbucket = self.kbuckets[kbucket_idx]
         if sender_nodeid in kbucket:
