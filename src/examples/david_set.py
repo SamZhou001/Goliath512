@@ -3,6 +3,8 @@ import asyncio
 import sys
 
 from david.network import Server
+from david.utils import digest
+
 
 if len(sys.argv) != 5:
     print("Usage: python set.py <bootstrap node> <bootstrap port> <key> <value>")
@@ -17,11 +19,11 @@ log.setLevel(logging.DEBUG)
 
 log2 = logging.getLogger('rpcudp')
 log2.addHandler(handler)
-log2.setLevel(logging.DEBUG)
+#log2.setLevel(logging.DEBUG)
 
 async def run():
-    server = Server()
-    await server.listen(8469)
+    server = Server(node_id=digest('8470'))
+    await server.listen(8470)
     bootstrap_node = (sys.argv[1], int(sys.argv[2]))
     await server.bootstrap([bootstrap_node])
     await server.set(sys.argv[3], sys.argv[4])

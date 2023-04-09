@@ -41,11 +41,9 @@ class Server:
         log.debug(f'Attempting to bootstrap node with {len(addrs)} initial contacts')
         coroutine_objects = list(map(self.bootstrap_node, addrs))
         gathered = await asyncio.gather(*coroutine_objects)
-        self.other_server_nodes = [node for node in gathered if node is not None]
-        return self.other_server_nodes 
 
     async def bootstrap_node(self, addr):
-        result = await self.protocol.ping(addr, self.node.id)
+        result = await self.protocol.call_ping(addr[0], addr[1], digest(str(addr[1])))
         return Node(result[1], addr[0], addr[1]) if result[0] else None
     
     async def set(self, key, value):
@@ -60,7 +58,10 @@ class Server:
         # Set the k,v pair on this node and the bootstrap nodes as well
         self.storage[dkey] = value
 
-        results = [self.protocol.call_store(n, dkey, value) for n in self.other_server_nodes]
+        k_closest = await self.protocol.slingshot()
+        k_closest_nodes = [Node(triple[2], triple[0], triple[1]) for triple in k_closest]
+        log.debug(f"k_closest_nodes in set_digest are {k_closest_nodes}")
+        results = [self.protocol.call_store(n, dkey, value) for n in k_closest_nodes]
 
         # return true only if at least one store call succeeded
         return any(await asyncio.gather(*results))
@@ -75,11 +76,23 @@ class Server:
         if self.storage.get(dkey) is not None:
             return self.storage.get(dkey)
 
-        results = [self.protocol.call_find_value(n, dkey) for n in self.other_server_nodes]
+        k_closest = await self.protocol.slingshot()
+        k_closest_nodes = [Node(triple[2], triple[0], triple[1]) for triple in k_closest]
+        
+        tasks = [self.protocol.call_find_value(n, dkey) for n in k_closest_nodes]
+        
+        while tasks:
+            finished, unfinished = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
-        result = await asyncio.gather(*results)
+            for x in finished:
+                result = x.result()
+                
+                # Return upon the first non-None result
+                if result != None and result["value"] != None:
+                    
+                    return result
 
-        return result
+            tasks = unfinished
 
     def kill(self):
         self.alive = False
