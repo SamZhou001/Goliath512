@@ -19,7 +19,7 @@ log.setLevel(logging.DEBUG)
 
 log2 = logging.getLogger('rpcudp')
 log2.addHandler(handler)
-log2.setLevel(logging.DEBUG)
+#log2.setLevel(logging.DEBUG)
 
 async def run():
     server = Server(node_id=digest('8470'))
