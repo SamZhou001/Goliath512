@@ -39,7 +39,7 @@ class Network():
         bootstrap_node_worker.start()
 
     def create_bootstrap_dht(self):
-        server = Server(node_id = digest(str(constants.BOOTSTRAP_DHT)))
+        server = Server(node_id=digest(str(constants.BOOTSTRAP_DHT)))
         loop = asyncio.new_event_loop()
         loop.set_debug(True)
 
@@ -65,14 +65,14 @@ class Network():
         dht_worker.start()
 
     def start_dht_server(self, port):
-        server = Server(node_id = digest(port))
+        server = Server(node_id=digest(port))
         loop = asyncio.new_event_loop()
         loop.set_debug(True)
         loop.run_until_complete(server.listen(port))
 
         bootstrap_node = ('0.0.0.0', constants.BOOTSTRAP_DHT)
         loop.run_until_complete(server.bootstrap([bootstrap_node]))
-        
+
         try:
             loop.run_forever()
         except KeyboardInterrupt:
@@ -80,9 +80,6 @@ class Network():
         finally:
             server.stop()
             loop.close()
-
-
-
 
     def add_job(self, node):
         t = ThreadedServer(node, port=node.port)
@@ -117,25 +114,3 @@ class Network():
         conn = connect('localhost', self.nodes[peerId].port)
         conn.root.revive()
         conn.close()
-
-
-async def test(network):
-    cid = network.upload(100, "hi", 40)
-    time.sleep(1)
-    network.download(101, cid)
-    time.sleep(1)
-    network.kill_node(100)
-    network.kill_node(101)
-    network.kill_node(102)
-    time.sleep(2)
-    network.revive_node(100)
-    network.revive_node(101)
-
-if __name__ == "__main__":
-    network = Network(constants.BOOTSTRAP_PORT)
-    for config in constants.NODE_CONFIG:
-        time.sleep(constants.SIM_INTERVAL)
-        network.add_node(config)
-        # print(f"Add node {config['peer_id']}")
-    time.sleep(constants.SIM_INTERVAL)
-    asyncio.run(test(network))

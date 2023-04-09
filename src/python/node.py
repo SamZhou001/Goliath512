@@ -195,8 +195,8 @@ class Node(Service):
             return
         self.downloading = cid
         result = await self.get(cid)
-        # peer_list = [(100, 8000), (102, 8002)]
-        peer_list = result['value']
+        peer_list = [(100, 8000), (102, 8002)]
+        # peer_list = result['value']
         self.download_peer_list = peer_list
         if not peer_list:
             print("Downloading failed")
@@ -245,11 +245,11 @@ class Node(Service):
     def exposed_kill(self):
         self.alive = False
         self.peers = {}
-        #asyncio.run(self.kill_dht())
+        # asyncio.run(self.kill_dht())
 
     def exposed_revive(self):
         self.alive = True
-        #asyncio.run(self.revive_dht())
+        # asyncio.run(self.revive_dht())
 
 
 if __name__ == "__main__":
