@@ -10,7 +10,6 @@ def bench_time(func):
     """
 
     def time_wrapper(*args, **keyArgs):
-        print("WRAPPER WENT OFF")
         t1 = time.perf_counter()
         r = func(*args, **keyArgs)
         t2 = time.perf_counter()

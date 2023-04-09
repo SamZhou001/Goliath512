@@ -175,9 +175,11 @@ class Node(Service):
                 if peer_id != self.peer_id:
                     remote_path = os.path.join(
                         "./storage", str(peer_id), "uploaded", fname)
-                    shutil.move(fpath, remote_path)
+                    shutil.copy(fpath, remote_path)
                     conn = connect('localhost', port)
+                    conn._config['sync_request_timeout'] = None
                     conn.root.ack_download(cid)
+                    conn.close()
                 return True
         return False
 
