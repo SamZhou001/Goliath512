@@ -18,7 +18,6 @@ class Server:
         self.transport = None
         self.protocol = None
         self.other_server_nodes = None
-        self.alive = True
 
     def stop(self):
         if self.transport is not None:
@@ -94,9 +93,10 @@ class Server:
 
             tasks = unfinished
 
-    def kill(self):
-        self.alive = False
-        print('DHT KILLED')
+    async def kill(self, addr):
+        result = await self.protocol.call_kill(addr[0], addr[1])
+        return result
 
-    def revive(self):
-        self.alive = True
+    async def revive(self, addr):
+        result = await self.protocol.call_revive(addr[0], addr[1])
+        return result

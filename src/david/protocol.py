@@ -17,12 +17,13 @@ class DavidProtocol(RPCProtocol):
         self.source_node = source_node
         self.storage = storage
         self.kbuckets = [OrderedDict() for i in range(160)]
+        self.alive = True
 
     def get_kbucket_idx(self, sender_nodeid):
         xor_dist = int(self.source_node.id.hex(), 16) ^ int(sender_nodeid.hex(), 16)
         #log.debug(f"xor dist is {xor_dist}")
         return math.floor(math.log(xor_dist, 2))
-
+    
     async def update_kbucket(self, sender_addr, sender_nodeid):
         #log.debug(f"Getting update kbucket req from {sender_addr}, I am {self.source_node.port}")
         kbucket_idx = self.get_kbucket_idx(sender_nodeid)
@@ -45,28 +46,53 @@ class DavidProtocol(RPCProtocol):
                     kbucket.pop(lru_nodeid)
                     kbucket[sender_nodeid] = sender_addr
         log.debug(f'Updated {kbucket_idx}th kbucket to be {kbucket}')
-
+    
     async def rpc_ping(self, sender, nodeid):
+        if not self.alive:
+            return f"node not alive!"
+
         log.debug(f'got a ping request from {sender}')
         await self.update_kbucket(sender, nodeid)
         return self.source_node.id
     
     async def rpc_store(self, sender, nodeid, key, value):
+        if not self.alive:
+            return f"node not alive!"
+
         log.debug(f'got a store request from {sender}, storing {key.hex()}={value}')
         await self.update_kbucket(sender, nodeid)
         self.storage[key] = value
         return True
 
     async def rpc_find_value(self, sender, nodeid, key):
+        if not self.alive:
+            return f"node not alive!"
+
         log.debug(f'got a find_value request from {sender}, finding {key.hex()}')
         await self.update_kbucket(sender, nodeid)
         value = self.storage.get(key, None)
         return {'value': value}
     
     async def rpc_find_node(self, sender, sender_nodeid):
+        if not self.alive:
+            return f"node not alive!"
+
         log.debug(f'got a find_node request from {sender}')
         await self.update_kbucket(sender, sender_nodeid)
         return self.find_kclosest_to_self()  
+    
+    async def rpc_kill(self, sender):
+        if not self.alive:
+            return f"node not alive!"
+
+        log.debug(f'got kill request from {sender}')
+        self.alive=False
+        return self.alive
+
+    async def rpc_revive(self, sender):
+        log.debug(f'got revive request from {sender}')
+        self.alive=True
+        return self.alive
 
     def find_kclosest_to_self(self):
         closest = []
@@ -109,6 +135,16 @@ class DavidProtocol(RPCProtocol):
         # to avoid infinite loop of pings
         if from_update_kbucket == False and result[0]:
             await self.update_kbucket(address, node_to_ask_id)
+        return result
+    
+    async def call_kill(self, node_to_ask_ip, node_to_ask_port):
+        address = (node_to_ask_ip, node_to_ask_port)
+        result = await self.kill(address)
+        return result
+
+    async def call_revive(self, node_to_ask_ip, node_to_ask_port):
+        address = (node_to_ask_ip, node_to_ask_port)
+        result = await self.revive(address)
         return result
     
     # Node lookup

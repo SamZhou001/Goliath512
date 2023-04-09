@@ -7,6 +7,8 @@ import shutil
 import os
 from rpyc import connect
 from david.utils import digest
+import hashlib
+import random
 
 from node import Node
 from bnode import BootstrapNode
@@ -81,9 +83,6 @@ class Network():
             server.stop()
             loop.close()
 
-
-
-
     def add_job(self, node):
         t = ThreadedServer(node, port=node.port)
         t.start()
@@ -112,12 +111,33 @@ class Network():
         conn = connect('localhost', self.nodes[peerId].port)
         conn.root.kill()
         conn.close()
+    
+        dht_port = self.nodes[peerId].port + 1000
+        asyncio.run(self.kill_dht_node(dht_port))
+    
+    async def kill_dht_node(self, dht_port, ip='0.0.0.0'):
+        server = Server()
+        node_addr = (ip, dht_port)
+        result = await server.kill(node_addr)
+        server.stop()
+
+        return result[1]
 
     def revive_node(self, peerId):
         conn = connect('localhost', self.nodes[peerId].port)
         conn.root.revive()
         conn.close()
 
+        dht_port = self.nodes[peerId].port + 1000
+        asyncio.run(self.revive_dht_node(dht_port))
+
+    async def revive_dht_node(self, dht_port, ip='0.0.0.0'):
+        server = Server()
+        node_addr = (ip, dht_port)
+        result = await server.revive(node_addr)
+        server.stop()
+
+        return result[1]
 
 async def test(network):
     cid = network.upload(100, "hi", 40)
