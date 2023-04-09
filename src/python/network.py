@@ -5,7 +5,6 @@ import asyncio
 from david.network import Server
 import shutil
 import os
-from signal import SIGKILL
 from rpyc import connect
 
 from node import Node
@@ -56,7 +55,8 @@ class Network():
     def upload(self, peerId, fname, charCount):
         node = self.nodes[peerId]
         node.generate_file(fname, charCount)
-        fpath = os.path.join(node.storage_path, "local", node.modify_fname(fname))
+        fpath = os.path.join(node.storage_path, "local",
+                             node.modify_fname(fname))
         if not os.path.exists(fpath):
             raise Exception("No file found")
         cid = node.hash_file(fpath)
@@ -81,6 +81,7 @@ class Network():
         conn = connect('localhost', self.nodes[peerId].port)
         conn.root.revive()
         conn.close()
+
 
 async def test(network):
     cid = network.upload(100, "hi", 40)
