@@ -76,15 +76,23 @@ class Server:
 
         k_closest = await self.protocol.slingshot()
         k_closest_nodes = [Node(triple[2], triple[0], triple[1]) for triple in k_closest]
-        for n in k_closest_nodes:
-            result = await self.protocol.call_find_value(n, dkey)
-            print("RESULT", result)
-            if result != None and result['value'] != None:
-                return result
-        #results = [self.protocol.call_find_value(n, dkey) for n in k_closest_nodes]
+        
+        tasks = [self.protocol.call_find_value(n, dkey) for n in k_closest_nodes]
+        
+        while tasks:
+            finished, unfinished = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
-        # return first successful result
-        #result = await asyncio.gather(*results)
+            for x in finished:
+                result = x.result()
+                
+                # Return upon the first non-None result
+                if result != None and result["value"] != None:
+                    # cancel the other tasks, we have a result. We need to wait for the cancellations
+                    # to propagate.
+                    for task in unfinished:
+                        task.cancel()
+                    await asyncio.wait(unfinished)
+                    return result
 
-        return None
+            tasks = unfinished
 
