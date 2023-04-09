@@ -94,7 +94,7 @@ class Server:
 
             tasks = unfinished
 
-    def kill(self):
+    def exposed_kill(self):
         self.alive = False
         print('DHT KILLED')
 
