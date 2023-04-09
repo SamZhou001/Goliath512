@@ -196,9 +196,7 @@ class Node(Service):
         self.downloading = cid
         result = await self.get(cid)
         peer_list = [(100, 8000), (102, 8002)]
-        print('PRINTING PEER LIST')
         # peer_list = result[0]['value']
-        print(peer_list)
         self.download_peer_list = peer_list
         if not peer_list:
             print("Downloading failed")
@@ -212,7 +210,6 @@ class Node(Service):
             t.start()
 
     def has_file_conn(self, port, cid):
-        print("SENDING HAS FILE CONN")
         conn = connect("localhost", port)
         conn.root.has_file(self.region, cid, self.peer_id, self.port)
         conn.close()
