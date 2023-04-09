@@ -117,21 +117,11 @@ class Node(Service):
         print(f"Set key-value pair {key}: {val}")
         server.stop()
 
-    async def kill_dht(self):
-        server = Server()
-        await server.listen(0)
-        bootstrap_node = ("127.0.0.1", self.dht_port)
-        await server.bootstrap([bootstrap_node])
-        server.kill()
-        server.stop()
+    def kill_dht(self):
+        pass
 
-    async def revive_dht(self):
-        server = Server()
-        await server.listen(0)
-        bootstrap_node = ("127.0.0.1", self.dht_port)
-        await server.bootstrap([bootstrap_node])
-        server.revive()
-        server.stop()
+    def revive_dht(self):
+        pass
 
     # Methods for upload
     def modify_fname(self, fname):
@@ -175,9 +165,11 @@ class Node(Service):
                 if peer_id != self.peer_id:
                     remote_path = os.path.join(
                         "./storage", str(peer_id), "uploaded", fname)
-                    shutil.move(fpath, remote_path)
+                    shutil.copy(fpath, remote_path)
                     conn = connect('localhost', port)
+                    conn._config['sync_request_timeout'] = None
                     conn.root.ack_download(cid)
+                    conn.close()
                 return True
         return False
 
@@ -196,10 +188,11 @@ class Node(Service):
         self.downloading = cid
         result = await self.get(cid)
         # peer_list = [(100, 8000), (102, 8002)]
-        peer_list = result['value']
+        peer_list = [peer for peer in result['value'] if peer[0] in self.peers]
         self.download_peer_list = peer_list
         if not peer_list:
             print("Downloading failed")
+            self.downloading = None
             return
         # set download timer to prevent blocking forever
         download_timer = DownloadTimer(self.port, cid)
@@ -210,8 +203,10 @@ class Node(Service):
             t.start()
 
     def has_file_conn(self, port, cid):
-        with connect("localhost", port) as conn:
-            conn.root.has_file(self.region, cid, self.peer_id, self.port)
+        conn = connect("localhost", port)
+        conn._config['sync_request_timeout'] = None
+        conn.root.has_file(self.region, cid, self.peer_id, self.port)
+        conn.close()
 
     @rpc
     def exposed_ack_download(self, cid):
@@ -242,14 +237,17 @@ class Node(Service):
         asyncio.run(self.download(cid))
 
     # Other methods
+    def exposed_send_server(self, server):
+        self.server = server
+
     def exposed_kill(self):
         self.alive = False
         self.peers = {}
-        #asyncio.run(self.kill_dht())
+        #self.kill_dht()
 
     def exposed_revive(self):
         self.alive = True
-        #asyncio.run(self.revive_dht())
+        #self.revive_dht()
 
 
 if __name__ == "__main__":

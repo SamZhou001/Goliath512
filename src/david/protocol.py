@@ -162,7 +162,7 @@ class DavidProtocol(RPCProtocol):
                     if result[0] == False:
                         continue
                     found = result[1]
-                    print(found)
+                    #print(found)
                     # For the new nodes you found, just add to kbucket
                     for triple2 in found:
                         foundid = triple2[2]
@@ -171,14 +171,14 @@ class DavidProtocol(RPCProtocol):
                         #print(self.source_node.ip, self.source_node.port)
                         #if (triple2[0], triple2[1]) == (self.source_node.ip, self.source_node.port):
                         if triple2[2] == self.source_node.id:
-                            print("continuing")
+                            #print("continuing")
                             continue
                             
                         # Hack: just add to kbucket directly
                         idx = self.get_kbucket_idx(foundid)
-                        print(triple2[1], foundid, self.kbuckets[idx])
+                        #print(triple2[1], foundid, self.kbuckets[idx])
                         if foundid not in self.kbuckets[idx]:
-                            print(f"ADDING {triple2[1]}")
+                            #print(f"ADDING {triple2[1]}")
                             self.kbuckets[idx][foundid] = (triple2[0], triple2[1])
                             added = True
                     queried.add(triple[2])

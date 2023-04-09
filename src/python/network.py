@@ -7,8 +7,7 @@ import shutil
 import os
 from rpyc import connect
 from david.utils import digest
-import hashlib
-import random
+import time
 
 from node import Node
 from bnode import BootstrapNode
@@ -41,7 +40,7 @@ class Network():
         bootstrap_node_worker.start()
 
     def create_bootstrap_dht(self):
-        server = Server(node_id = digest(str(constants.BOOTSTRAP_DHT)))
+        server = Server(node_id=digest(str(constants.BOOTSTRAP_DHT)))
         loop = asyncio.new_event_loop()
         loop.set_debug(True)
 
@@ -67,14 +66,14 @@ class Network():
         dht_worker.start()
 
     def start_dht_server(self, port):
-        server = Server(node_id = digest(port))
+        server = Server(node_id=digest(port))
         loop = asyncio.new_event_loop()
         loop.set_debug(True)
         loop.run_until_complete(server.listen(port))
 
         bootstrap_node = ('0.0.0.0', constants.BOOTSTRAP_DHT)
         loop.run_until_complete(server.bootstrap([bootstrap_node]))
-        
+
         try:
             loop.run_forever()
         except KeyboardInterrupt:
