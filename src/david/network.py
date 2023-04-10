@@ -93,15 +93,9 @@ class Server:
 
             tasks = unfinished
 
-<<<<<<< HEAD
     async def kill(self, addr):
         result = await self.protocol.call_kill(addr[0], addr[1])
         return result
-=======
-    def exposed_kill(self):
-        self.alive = False
-        print('DHT KILLED')
->>>>>>> b4b5794867ccb31646c006bd96a702949100df8b
 
     async def revive(self, addr):
         result = await self.protocol.call_revive(addr[0], addr[1])
