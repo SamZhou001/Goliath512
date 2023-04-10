@@ -1,6 +1,6 @@
 PING_TIMER = 0.5 # Time between each ping
 CHECK_PING_TIMER = 2
-DOWNLOAD_TIMER = 3 # Time allowed for download
+DOWNLOAD_TIMER = 5 # Time allowed for download
 BOOTSTRAP_PORT = 18861
 BOOTSTRAP_DHT = 18862
 SIM_INTERVAL = 1 # Amount of time between each step in network main function
@@ -35,9 +35,9 @@ PARAMETERS = {
 }
 '''
 PARAMETERS = {
-    "k": [3],
+    "k": [1, 3],
     "nodes": [6],
-    "kill_chance": [0]
+    "kill_chance": [0, 0.1]
 }
 
 

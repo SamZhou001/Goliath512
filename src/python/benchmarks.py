@@ -54,15 +54,18 @@ class Benchmark:
             network.download(id2, cid)
             #time.sleep(constants.DOWNLOAD_TIMER)
             fname = str(id1) + "_hi.txt"
-            for i in range(20):
+            for i in range(25):
                 if fname in list(os.listdir(os.path.join("./storage/", str(id2), "uploaded"))):
                     t2 = time.perf_counter()
                     download_t.append(t2-t1)
                     successes += 1
                     break
-                time.sleep(0.1)
-        self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
-        self.download_prob[self.k][self.n_nodes][self.kill_chance] = successes/len(download_t)
+                time.sleep(0.2)
+        if len(download_t) > 0:
+            self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
+        else:
+            self.download_times[self.k][self.n_nodes][self.kill_chance] = 0
+        self.download_prob[self.k][self.n_nodes][self.kill_chance] = successes/min(len(peer_ids)//2, 10)
 
     async def test2(self, network, peer_ids): # multiple uploads
         upload_t = []
@@ -96,18 +99,23 @@ class Benchmark:
             network.download(id2, cid)
             #time.sleep(constants.DOWNLOAD_TIMER)
             fname = str(id1) + "_hi.txt"
-            for i in range(20):
+            for i in range(25):
                 if fname in list(os.listdir(os.path.join("./storage/", str(id2), "uploaded"))):
                     t2 = time.perf_counter()
                     download_t.append(t2-t1)
                     successes += 1
                     break
-                time.sleep(0.1)
-        self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
+                time.sleep(0.2)
+        if len(download_t) > 0:
+            self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
+        else:
+            self.download_times[self.k][self.n_nodes][self.kill_chance] = 0
         self.download_prob[self.k][self.n_nodes][self.kill_chance] = successes/10
 
     async def full_test(self, testNum):
         assert testNum in [1, 2]
+        counter = 0
+        total_params = len(constants.PARAMETERS['k']) * len(constants.PARAMETERS['nodes']) * len(constants.PARAMETERS['kill_chance'])
         for k in constants.PARAMETERS['k']:
             self.k = k
             self.upload_times[k] = {}
@@ -118,13 +126,14 @@ class Benchmark:
                 self.upload_times[k][n_nodes] = {}
                 self.download_times[k][n_nodes] = {}
                 self.download_prob[k][n_nodes] = {}
-                network = Network(constants.BOOTSTRAP_PORT, k)
+                network = Network(constants.BOOTSTRAP_PORT, k, False)
                 config = constants.node_config(n_nodes)
                 peer_ids = [c['peer_id'] for c in config]
                 for c in config:
                     sleep()
                     network.add_node(c)
                 for kill_chance in constants.PARAMETERS['kill_chance']:
+                    print(f"Progress: {counter}/{total_params}", end="\r")
                     self.kill_chance = kill_chance
                     self.upload_times[k][n_nodes][kill_chance] = {}
                     self.download_times[k][n_nodes][kill_chance] = {}
@@ -135,14 +144,13 @@ class Benchmark:
                     else:
                         await self.test2(network, peer_ids)
                     network.reset()
+                    counter += 1
                 network.kill()
         return self.upload_times, self.download_times, self.download_prob
 
 if __name__ == "__main__":
     benchmark = Benchmark()
-    blockPrint()
     upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1))
-    enablePrint()
     print(upload_times_1, download_times_1, download_prob_1)
     #upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2))
 

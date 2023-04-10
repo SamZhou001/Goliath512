@@ -15,7 +15,7 @@ import constants
 
 
 class Node(Service):
-    def __init__(self, config):
+    def __init__(self, config, verbose):
         self.alive = True
         self.peer_id = config['peer_id']
         self.port = config['port']
@@ -33,7 +33,9 @@ class Node(Service):
         self.timer_init = False
         self.downloading = None
         self.download_peer_list = None
+        self.verbose = verbose
         self.threads = []
+
         self.init_timer()
 
     def rpc(func):
@@ -106,7 +108,8 @@ class Node(Service):
         bootstrap_node = ("127.0.0.1", self.dht_port)
         await server.bootstrap([bootstrap_node])
         result = await server.get(key)
-        print("Get result:", result)
+        if self.verbose:
+            print("Get result:", result)
         server.stop()
         return result
 
@@ -116,7 +119,8 @@ class Node(Service):
         bootstrap_node = ("127.0.0.1", self.dht_port)
         await server.bootstrap([bootstrap_node])
         await server.set(key, val)
-        print(f"Set key-value pair {key}: {val}")
+        if self.verbose:
+            print(f"Set key-value pair {key}: {val}")
         server.stop()
 
     # Methods for upload
@@ -176,22 +180,26 @@ class Node(Service):
 
     async def download(self, cid):
         if self.has_file(cid, self.peer_id, self.port):
-            print("Already has file")
+            if self.verbose:
+                print("Already has file")
             return
         if self.downloading:
-            print("Downloading other file")
+            if self.verbose:
+                print("Downloading other file")
             return
         self.downloading = cid
         result = await self.get(cid)
         #peer_list = [peer for peer in result['value'] if peer[0] in self.peers]
         if not result:
-            print("Downloading failed")
+            if self.verbose:
+                print("Downloading failed")
             self.downloading = None
             return
         peer_list = result['value']
         self.download_peer_list = peer_list
         if not peer_list:
-            print("Downloading failed")
+            if self.verbose:
+                print("Downloading failed")
             self.downloading = None
             return
         # set download timer to prevent blocking forever
@@ -203,17 +211,22 @@ class Node(Service):
             t.start()
 
     def has_file_conn(self, port, cid):
-        conn = connect("localhost", port)
-        conn._config['sync_request_timeout'] = None
-        conn.root.has_file(self.region, cid, self.peer_id, self.port)
-        conn.close()
+        try:
+            conn = connect("localhost", port)
+            conn._config['sync_request_timeout'] = None
+            conn.root.has_file(self.region, cid, self.peer_id, self.port)
+            conn.close()
+        except:
+            return
 
     @rpc
     def exposed_ack_download(self, cid):
         if self.downloading != cid:
-            print("Download done")
+            if self.verbose:
+                print("Download done")
             return
-        print(f"File downloaded. CID: {cid}")
+        if self.verbose:
+            print(f"File downloaded. CID: {cid}")
         asyncio.run(self.set(cid, self.download_peer_list +
                     [(self.peer_id, self.port)]))
         self.downloading = None
@@ -225,7 +238,8 @@ class Node(Service):
     @rpc
     def exposed_download_over(self, cid):
         if self.downloading == cid:  # download still not complete after timer ends
-            print("Downloading has failed")
+            if self.verbose:
+                print("Downloading has failed")
             self.downloading = None
             self.download_peer_list = None
             if self.threads:

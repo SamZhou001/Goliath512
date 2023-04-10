@@ -25,9 +25,10 @@ log.setLevel(logging.DEBUG)
 
 
 class Network():
-    def __init__(self, bnodePort, k):
+    def __init__(self, bnodePort, k, verbose):
         self.k = k
         self.bnodePort = bnodePort
+        self.verbose = verbose
         self.bnode = BootstrapNode(bnodePort)
         self.nodes = {}  # Map from peer_id of each node to the node itself; makes it easier to call individual node functions
         if os.path.exists('./storage'):
@@ -57,7 +58,7 @@ class Network():
 
     def add_node(self, config):
         config['bootstrap_port'] = constants.BOOTSTRAP_PORT
-        node = Node(config)
+        node = Node(config, self.verbose)
         self.nodes[node.peer_id] = node
         node_worker = multiprocessing.Process(
             target=self.add_job, args=(node,))
@@ -113,7 +114,7 @@ class Network():
         conn.close()
     
         dht_port = self.nodes[peerId].dht_port
-        asyncio.run(self.kill_dht_node(dht_port))
+        await self.kill_dht_node(dht_port)
     
     async def kill_dht_node(self, dht_port, ip='0.0.0.0'):
         server = Server()
@@ -130,7 +131,7 @@ class Network():
         conn.close()
 
         dht_port = self.nodes[peerId].dht_port
-        asyncio.run(self.revive_dht_node(dht_port))
+        await self.revive_dht_node(dht_port)
 
     async def revive_dht_node(self, dht_port, ip='0.0.0.0'):
         server = Server()
