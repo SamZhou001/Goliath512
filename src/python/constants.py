@@ -26,3 +26,21 @@ NODE_CONFIG = [
     }
     for i in range(NUM_NODES)
 ]
+PARAMETERS = {
+    "k": [1, 3, 20],
+    "nodes": [6, 18, 36, 72],
+    "regional": [True, False],
+    "kill_chance": [0, 0.1, 0.2, 0.3, 0.4, 0.5]
+}
+
+def node_config(nodes, regional):
+    return [
+    {
+        "peer_id": 100 + i,
+        "port": 8000 + i,
+        "dht_port": 9000 + i,
+        "connect_prob": 1,
+        "region": REGIONS[i%6] if regional else REGIONS[0]
+    }
+    for i in range(nodes)
+]

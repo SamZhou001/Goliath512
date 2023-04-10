@@ -1,7 +1,6 @@
 import asyncio
 from rpyc import Service
 from rpyc import connect
-from rpyc.utils.classic import download
 import random
 import string
 import os
@@ -61,7 +60,7 @@ class Node(Service):
         conn.close()
 
     def add_peer(self, peer_id, port):
-        print(f'Peer {self.peer_id} adds peer {peer_id}')
+        #print(f'Peer {self.peer_id} adds peer {peer_id}')
         self.peers[peer_id] = port
 
     # remove dead peers
@@ -116,12 +115,6 @@ class Node(Service):
         await server.set(key, val)
         print(f"Set key-value pair {key}: {val}")
         server.stop()
-
-    def kill_dht(self):
-        pass
-
-    def revive_dht(self):
-        pass
 
     # Methods for upload
     def modify_fname(self, fname):
@@ -243,11 +236,9 @@ class Node(Service):
     def exposed_kill(self):
         self.alive = False
         self.peers = {}
-        #self.kill_dht()
 
     def exposed_revive(self):
         self.alive = True
-        #self.revive_dht()
 
 
 if __name__ == "__main__":
