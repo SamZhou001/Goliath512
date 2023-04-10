@@ -112,8 +112,8 @@ class Network():
         conn.root.kill()
         conn.close()
     
-        dht_port = self.nodes[peerId].port + 1000
-        await self.kill_dht_node(dht_port)
+        dht_port = self.nodes[peerId].dht_port
+        asyncio.run(self.kill_dht_node(dht_port))
     
     async def kill_dht_node(self, dht_port, ip='0.0.0.0'):
         server = Server()
@@ -129,8 +129,8 @@ class Network():
         conn.root.revive()
         conn.close()
 
-        dht_port = self.nodes[peerId].port + 1000
-        await self.revive_dht_node(dht_port)
+        dht_port = self.nodes[peerId].dht_port
+        asyncio.run(self.revive_dht_node(dht_port))
 
     async def revive_dht_node(self, dht_port, ip='0.0.0.0'):
         server = Server()
@@ -141,5 +141,16 @@ class Network():
 
         return result[1]
 
+async def test(network):
+    cid = network.upload(100, "hi", 40)
+    time.sleep(constants.SIM_INTERVAL)
+    network.download(101, cid)
+    time.sleep(constants.SIM_INTERVAL)
+
 if __name__ == "__main__":
-    pass
+    network = Network(constants.BOOTSTRAP_PORT, 3)
+    for config in constants.NODE_CONFIG:
+        time.sleep(constants.SIM_INTERVAL)
+        network.add_node(config)
+    time.sleep(constants.SIM_INTERVAL)
+    asyncio.run(test(network))

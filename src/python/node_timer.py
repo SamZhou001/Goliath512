@@ -13,7 +13,7 @@ class PingTimer(Service):
         conn = connect('localhost', self.port)
         if self.isBnode:
             conn.root.check_heartbeat()
-            threading.Timer(2 * constants.PING_TIMER, self.ping).start()
+            threading.Timer(constants.CHECK_PING_TIMER, self.ping).start()
         else:
             conn.root.ping()
             threading.Timer(constants.PING_TIMER, self.ping).start()

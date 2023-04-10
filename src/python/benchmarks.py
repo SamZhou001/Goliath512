@@ -44,14 +44,17 @@ class Benchmark:
                         killed_nodes.remove(peer_id)
             t1 = time.perf_counter()
             network.download(id2, cid)
-            t2 = time.perf_counter()
             #time.sleep(constants.DOWNLOAD_TIMER)
             fname = str(id1) + "_hi.txt"
-            if fname in list(os.listdir(os.path.join("./storage/"), id2, "uploaded")):
-                download_t.append(t2-t1)
-                successes += 1
+            for i in range(20):
+                if fname in list(os.listdir(os.path.join("./storage/", str(id2), "uploaded"))):
+                    t2 = time.perf_counter()
+                    download_t.append(t2-t1)
+                    successes += 1
+                    break
+                time.sleep(0.1)
         self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
-        self.download_prob[self.k][self.n_nodes][self.kill_chance] = successes/10
+        self.download_prob[self.k][self.n_nodes][self.kill_chance] = successes/len(download_t)
 
     async def test2(self, network, peer_ids): # multiple uploads
         upload_t = []
@@ -83,12 +86,15 @@ class Benchmark:
                         killed_nodes.remove(peer_id)
             t1 = time.perf_counter()
             network.download(id2, cid)
-            t2 = time.perf_counter()
             #time.sleep(constants.DOWNLOAD_TIMER)
-            fname = str(id1) + "_" + i + ".txt"
-            if fname in list(os.listdir(os.path.join("./storage/"), id2, "uploaded")):
-                download_t.append(t2-t1)
-                successes += 1
+            fname = str(id1) + "_hi.txt"
+            for i in range(20):
+                if fname in list(os.listdir(os.path.join("./storage/", str(id2), "uploaded"))):
+                    t2 = time.perf_counter()
+                    download_t.append(t2-t1)
+                    successes += 1
+                    break
+                time.sleep(0.1)
         self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
         self.download_prob[self.k][self.n_nodes][self.kill_chance] = successes/10
 
@@ -125,7 +131,8 @@ class Benchmark:
 if __name__ == "__main__":
     benchmark = Benchmark()
     upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1))
-    upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2))
+    print(upload_times_1, download_times_1, download_prob_1)
+    #upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2))
 
 
 
