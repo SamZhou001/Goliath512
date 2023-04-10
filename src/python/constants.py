@@ -2,7 +2,7 @@ PING_TIMER = 0.5 # Time between each ping
 DOWNLOAD_TIMER = 3 # Time allowed for download
 BOOTSTRAP_PORT = 18861
 BOOTSTRAP_DHT = 18862
-SIM_INTERVAL = 1 # Amount of time between each step in network main function
+SIM_INTERVAL = 0.5 # Amount of time between each step in network main function
 HASH_DIGITS = 16 # Number of digits of each cid and dhtId
 NUM_NODES = 3
 BASE_LATENCY = 30 # ms
@@ -28,9 +28,9 @@ NODE_CONFIG = [
 ]
 PARAMETERS = {
     "k": [1, 3, 20],
-    "nodes": [6, 18, 36, 72],
+    "nodes": [6, 18, 36],
     "regional": [True, False],
-    "kill_chance": [0, 0.1, 0.2, 0.3, 0.4, 0.5]
+    "kill_chance": [0, 0.1, 0.25]
 }
 
 def node_config(nodes, regional):
