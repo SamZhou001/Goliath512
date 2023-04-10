@@ -3,24 +3,8 @@ from network import Network
 import constants
 import asyncio
 
-
-def bench_time(func):
-    """
-      decorator to calculate the total time of a func
-    """
-
-    def time_wrapper(*args, **keyArgs):
-        t1 = time.perf_counter()
-        r = func(*args, **keyArgs)
-        t2 = time.perf_counter()
-        print("Test=%s, Time=%s" % (func.__name__, t2 - t1))
-        return r
-
-    return time_wrapper
-
-
-@bench_time
 async def test(network):
+    t1 = time.perf_counter()
     cid = network.upload(100, "hi", 40)
     time.sleep(1)
     network.download(101, cid)
@@ -31,6 +15,8 @@ async def test(network):
     time.sleep(2)
     network.revive_node(100)
     network.revive_node(101)
+    t2 = time.perf_counter()
+    print(t2 - t1)
 
 if __name__ == "__main__":
     network = Network(constants.BOOTSTRAP_PORT)
