@@ -8,7 +8,7 @@ from rpcudp.protocol import RPCProtocol
 from collections import OrderedDict
 
 log = logging.getLogger(__name__)
-logging.getLogger("rpcudp").setLevel(logging.WARNING)
+logging.getLogger("rpcudp").setLevel(logging.CRITICAL)
 
 
 class DavidProtocol(RPCProtocol):
