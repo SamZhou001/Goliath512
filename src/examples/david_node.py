@@ -29,11 +29,11 @@ def parse_arguments():
 
 
 def connect_to_bootstrap_node(args):
-    server = Server(node_id = digest('8469'))
+    server = Server(node_id = digest('9000'))
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
 
-    loop.run_until_complete(server.listen(8469))
+    loop.run_until_complete(server.listen(9000))
     bootstrap_node = (args.ip, int(args.port))
     loop.run_until_complete(server.bootstrap([bootstrap_node]))
 
