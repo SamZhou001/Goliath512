@@ -13,8 +13,8 @@ async def test(network):
     await network.kill_node(101)
     await network.kill_node(102)
     time.sleep(2)
-    network.revive_node(100)
-    network.revive_node(101)
+    await network.revive_node(100)
+    await network.revive_node(101)
     t2 = time.perf_counter()
     print(t2 - t1)
 
