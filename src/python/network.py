@@ -106,17 +106,18 @@ class Network():
         conn.root.download(cid)
         conn.close()
 
-    def kill_node(self, peerId):
+    async def kill_node(self, peerId):
         conn = connect('localhost', self.nodes[peerId].port)
         conn.root.kill()
         conn.close()
     
         dht_port = self.nodes[peerId].port + 1000
-        asyncio.run(self.kill_dht_node(dht_port))
+        await self.kill_dht_node(dht_port)
     
     async def kill_dht_node(self, dht_port, ip='0.0.0.0'):
         server = Server()
         node_addr = (ip, dht_port)
+        await server.listen(0) # Listen to some random port, to make server.protocol not None
         result = await server.kill(node_addr)
         server.stop()
 
