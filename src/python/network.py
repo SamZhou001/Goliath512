@@ -140,6 +140,18 @@ class Network():
         server.stop()
 
         return result[1]
+    
+    def kill(self):
+        active = multiprocessing.active_children()
+        for child in active:
+            child.terminate()
+
+    def reset(self):
+        for peer_id in os.listdir('./storage'):
+            shutil.rmtree(f'./storage/{peer_id}/local')
+            os.makedirs(f'./storage/{peer_id}/local')
+            shutil.rmtree(f'./storage/{peer_id}/uploaded')
+            os.makedirs(f'./storage/{peer_id}/uploaded')
 
 async def test(network):
     cid = network.upload(100, "hi", 40)

@@ -3,10 +3,17 @@ from network import Network
 import constants
 import random
 import os
+import sys
 import asyncio
 
 def sleep():
     time.sleep(constants.SIM_INTERVAL)
+
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+
+def enablePrint():
+    sys.stdout = sys.__stdout__
 
 class Benchmark:
     
@@ -126,11 +133,15 @@ class Benchmark:
                         await self.test1(network, peer_ids)
                     else:
                         await self.test2(network, peer_ids)
+                    network.reset()
+                network.kill()
         return self.upload_times, self.download_times, self.download_prob
 
 if __name__ == "__main__":
     benchmark = Benchmark()
+    blockPrint()
     upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1))
+    enablePrint()
     print(upload_times_1, download_times_1, download_prob_1)
     #upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2))
 

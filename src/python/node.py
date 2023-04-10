@@ -39,7 +39,10 @@ class Node(Service):
     def rpc(func):
         def wrapper(self, *args, **kwargs):
             if self.alive:
-                func(self, *args, **kwargs)
+                try:
+                    func(self, *args, **kwargs)
+                except:
+                    return
         return wrapper
 
     def calculate_delay(self, region):
@@ -103,7 +106,7 @@ class Node(Service):
         bootstrap_node = ("127.0.0.1", self.dht_port)
         await server.bootstrap([bootstrap_node])
         result = await server.get(key)
-        #print("Get result:", result)
+        print("Get result:", result)
         server.stop()
         return result
 
@@ -113,7 +116,7 @@ class Node(Service):
         bootstrap_node = ("127.0.0.1", self.dht_port)
         await server.bootstrap([bootstrap_node])
         await server.set(key, val)
-        #print(f"Set key-value pair {key}: {val}")
+        print(f"Set key-value pair {key}: {val}")
         server.stop()
 
     # Methods for upload
@@ -173,7 +176,7 @@ class Node(Service):
 
     async def download(self, cid):
         if self.has_file(cid, self.peer_id, self.port):
-            #print("Already has file")
+            print("Already has file")
             return
         if self.downloading:
             print("Downloading other file")
@@ -210,7 +213,7 @@ class Node(Service):
         if self.downloading != cid:
             print("Download done")
             return
-        #print(f"File downloaded. CID: {cid}")
+        print(f"File downloaded. CID: {cid}")
         asyncio.run(self.set(cid, self.download_peer_list +
                     [(self.peer_id, self.port)]))
         self.downloading = None
