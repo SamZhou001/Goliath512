@@ -3,6 +3,7 @@ from network import Network
 import constants
 import random
 import os
+import asyncio
 
 def sleep():
     time.sleep(constants.SIM_INTERVAL)
@@ -17,7 +18,7 @@ class Benchmark:
         self.n_nodes = None
         self.kill_chance = None
 
-    def test1(self, network, peer_ids):
+    async def test1(self, network, peer_ids):
         id1 = random.choice(peer_ids)
         t1 = time.perf_counter()
         cid = network.upload(id1, "hi", 40)
@@ -29,17 +30,17 @@ class Benchmark:
         download_t = []
         killed_nodes = []
         successes = 0
-        for _ in range(min(len(peer_id)//2, 10)):
+        for _ in range(min(len(peer_ids)//2, 10)):
             id2 = random.choice(peer_ids_copy)
             peer_ids_copy.remove(id2)
             for peer_id in peer_ids:
                 if random.random() < self.kill_chance and peer_id != id2: # kill node
                     if peer_id not in killed_nodes:
-                        network.kill_node(peer_id)
+                        await network.kill_node(peer_id)
                         killed_nodes.append(peer_id)
                 else:
                     if peer_id in killed_nodes:
-                        network.revive_node(peer_id)
+                        await network.revive_node(peer_id)
                         killed_nodes.remove(peer_id)
             t1 = time.perf_counter()
             network.download(id2, cid)
@@ -52,7 +53,7 @@ class Benchmark:
         self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
         self.download_prob[self.k][self.n_nodes][self.kill_chance] = successes/10
 
-    def test2(self, network, peer_ids): # multiple uploads
+    async def test2(self, network, peer_ids): # multiple uploads
         upload_t = []
         testing_pairs = []
         for i in range(10):
@@ -74,11 +75,11 @@ class Benchmark:
             for peer_id in peer_ids:
                 if random.random() < self.kill_chance and peer_id != id2: # kill node
                     if peer_id not in killed_nodes:
-                        network.kill_node(peer_id)
+                        await network.kill_node(peer_id)
                         killed_nodes.append(peer_id)
                 else:
                     if peer_id in killed_nodes:
-                        network.revive_node(peer_id)
+                        await network.revive_node(peer_id)
                         killed_nodes.remove(peer_id)
             t1 = time.perf_counter()
             network.download(id2, cid)
@@ -91,7 +92,7 @@ class Benchmark:
         self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
         self.download_prob[self.k][self.n_nodes][self.kill_chance] = successes/10
 
-    def full_test(self, testNum):
+    async def full_test(self, testNum):
         assert testNum in [1, 2]
         for k in constants.PARAMETERS['k']:
             self.k = k
@@ -116,15 +117,15 @@ class Benchmark:
                     self.download_prob[k][n_nodes][kill_chance] = {}
                     sleep()
                     if testNum == 1:
-                        self.test1(network, peer_ids)
+                        await self.test1(network, peer_ids)
                     else:
-                        self.test2(network, peer_ids)
+                        await self.test2(network, peer_ids)
         return self.upload_times, self.download_times, self.download_prob
 
 if __name__ == "__main__":
     benchmark = Benchmark()
-    upload_times_1, download_times_1, download_prob_1 = benchmark.full_test(1)
-    upload_times_2, download_times_2, download_prob_2 = benchmark.full_test(2)
+    upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1))
+    upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2))
 
 
 
