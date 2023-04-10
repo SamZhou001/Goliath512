@@ -5,15 +5,10 @@ import random
 import os
 import sys
 import asyncio
+import json
 
 def sleep():
     time.sleep(constants.SIM_INTERVAL)
-
-def blockPrint():
-    sys.stdout = open(os.devnull, 'w')
-
-def enablePrint():
-    sys.stdout = sys.__stdout__
 
 class Benchmark:
     
@@ -26,7 +21,6 @@ class Benchmark:
         self.kill_chance = None
 
     async def test1(self, network, peer_ids):
-        random.seed(3)
         id1 = random.choice(peer_ids)
         t1 = time.perf_counter()
         cid = network.upload(id1, "hi", 40)
@@ -40,6 +34,7 @@ class Benchmark:
         successes = 0
         for _ in range(min(len(peer_ids)//2, 10)):
             id2 = random.choice(peer_ids_copy)
+            print(id2)
             peer_ids_copy.remove(id2)
             for peer_id in peer_ids:
                 if random.random() < self.kill_chance and peer_id != id2: # kill node
@@ -50,9 +45,9 @@ class Benchmark:
                     if peer_id in killed_nodes:
                         await network.revive_node(peer_id)
                         killed_nodes.remove(peer_id)
+            sleep()
             t1 = time.perf_counter()
             network.download(id2, cid)
-            #time.sleep(constants.DOWNLOAD_TIMER)
             fname = str(id1) + "_hi.txt"
             for i in range(25):
                 if fname in list(os.listdir(os.path.join("./storage/", str(id2), "uploaded"))):
@@ -61,6 +56,9 @@ class Benchmark:
                     successes += 1
                     break
                 time.sleep(0.2)
+        for peer_id in killed_nodes:
+            await network.revive_node(peer_id)
+            killed_nodes.remove(peer_id)
         if len(download_t) > 0:
             self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
         else:
@@ -95,9 +93,9 @@ class Benchmark:
                     if peer_id in killed_nodes:
                         await network.revive_node(peer_id)
                         killed_nodes.remove(peer_id)
+            sleep()
             t1 = time.perf_counter()
             network.download(id2, cid)
-            #time.sleep(constants.DOWNLOAD_TIMER)
             fname = str(id1) + "_hi.txt"
             for i in range(25):
                 if fname in list(os.listdir(os.path.join("./storage/", str(id2), "uploaded"))):
@@ -106,6 +104,9 @@ class Benchmark:
                     successes += 1
                     break
                 time.sleep(0.2)
+        for peer_id in killed_nodes:
+            await network.revive_node(peer_id)
+            killed_nodes.remove(peer_id)
         if len(download_t) > 0:
             self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
         else:
@@ -126,14 +127,14 @@ class Benchmark:
                 self.upload_times[k][n_nodes] = {}
                 self.download_times[k][n_nodes] = {}
                 self.download_prob[k][n_nodes] = {}
-                network = Network(constants.BOOTSTRAP_PORT, k, False)
-                config = constants.node_config(n_nodes)
-                peer_ids = [c['peer_id'] for c in config]
-                for c in config:
-                    sleep()
-                    network.add_node(c)
                 for kill_chance in constants.PARAMETERS['kill_chance']:
                     print(f"Progress: {counter}/{total_params}", end="\r")
+                    network = Network(constants.BOOTSTRAP_PORT, k, True)
+                    config = constants.node_config(n_nodes)
+                    peer_ids = [c['peer_id'] for c in config]
+                    for c in config:
+                        sleep()
+                        network.add_node(c)
                     self.kill_chance = kill_chance
                     self.upload_times[k][n_nodes][kill_chance] = {}
                     self.download_times[k][n_nodes][kill_chance] = {}
@@ -143,17 +144,27 @@ class Benchmark:
                         await self.test1(network, peer_ids)
                     else:
                         await self.test2(network, peer_ids)
-                    network.reset()
                     counter += 1
-                network.kill()
+                    network.kill()
         return self.upload_times, self.download_times, self.download_prob
 
 if __name__ == "__main__":
     benchmark = Benchmark()
     upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1))
-    print(upload_times_1, download_times_1, download_prob_1)
-    #upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2))
-
-
-
-    
+    data_1 = {
+        "upload_time": upload_times_1, 
+        "download_time": download_times_1, 
+        "download_prob": download_prob_1
+    }
+    with open('data_1.json', 'w') as f:
+        json.dump(data_1, f)
+    '''
+    upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2))
+    data_2 = {
+        "upload_time": upload_times_2, 
+        "download_time": download_times_2, 
+        "download_prob": download_prob_2
+    }
+    with open('data_2.json', 'w') as f:
+        json.dump(data_2, f)
+    '''

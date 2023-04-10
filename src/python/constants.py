@@ -29,15 +29,15 @@ NODE_CONFIG = [
 ]
 '''
 PARAMETERS = {
-    "k": [1, 3, 20],
-    "nodes": [6, 18, 36],
+    "k": [1, 3, 10],
+    "nodes": [6, 12, 24],
     "kill_chance": [0, 0.1, 0.25]
 }
 '''
 PARAMETERS = {
-    "k": [1, 3],
+    "k": [1],
     "nodes": [6],
-    "kill_chance": [0, 0.1]
+    "kill_chance": [0]
 }
 
 
