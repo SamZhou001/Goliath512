@@ -5,46 +5,46 @@ services:
     build:
       context: ./src/david
       args:
-        PORT: 8000
+        PORT: 9000
     restart: always
     network_mode: "host"
-  david-test-node-1:
-    image: david-node-1
-    build:
-      context: ./src/david
-      args:
-        PORT: 8001
-    restart: always
-    network_mode: "host"
-  david-test-node-2:
-    image: david-node-2
-    build:
-      context: ./src/david
-      args:
-        PORT: 8002
-    restart: always
-    network_mode: "host"
-  david-test-node-3:
-    image: david-node-3
-    build:
-      context: ./src/david
-      args:
-        PORT: 8003
-    restart: always
-    network_mode: "host"
-  david-test-node-4:
-    image: david-node-4
-    build:
-      context: ./src/david
-      args:
-        PORT: 8004
-    restart: always
-    network_mode: "host"
-  david-test-node-5:
-    image: david-node-5
-    build:
-      context: ./src/david
-      args:
-        PORT: 8005
-    restart: always
-    network_mode: "host"
+  # david-test-node-1:
+  #   image: david-node-1
+  #   build:
+  #     context: ./src/david
+  #     args:
+  #       PORT: 9001
+  #   restart: always
+  #   network_mode: "host"
+  # david-test-node-2:
+  #   image: david-node-2
+  #   build:
+  #     context: ./src/david
+  #     args:
+  #       PORT: 9002
+  #   restart: always
+  #   network_mode: "host"
+  # david-test-node-3:
+  #   image: david-node-3
+  #   build:
+  #     context: ./src/david
+  #     args:
+  #       PORT: 9003
+  #   restart: always
+  #   network_mode: "host"
+  # david-test-node-4:
+  #   image: david-node-4
+  #   build:
+  #     context: ./src/david
+  #     args:
+  #       PORT: 9004
+  #   restart: always
+  #   network_mode: "host"
+  # david-test-node-5:
+  #   image: david-node-5
+  #   build:
+  #     context: ./src/david
+  #     args:
+  #       PORT: 9005
+  #   restart: always
+  #   network_mode: "host"
