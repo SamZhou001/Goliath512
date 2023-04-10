@@ -12,12 +12,13 @@ logging.getLogger("rpcudp").setLevel(logging.WARNING)
 
 
 class DavidProtocol(RPCProtocol):
-    def __init__(self, source_node, storage):
+    def __init__(self, source_node, storage, ksize):
         super().__init__(wait_timeout = 0.5)
         self.source_node = source_node
         self.storage = storage
         self.kbuckets = [OrderedDict() for i in range(160)]
         self.alive = True
+        self.ksize = ksize
 
     def get_kbucket_idx(self, sender_nodeid):
         xor_dist = int(self.source_node.id.hex(), 16) ^ int(sender_nodeid.hex(), 16)
@@ -31,7 +32,7 @@ class DavidProtocol(RPCProtocol):
         if sender_nodeid in kbucket:
             kbucket.move_to_end(sender_nodeid)
         else:
-            if len(kbucket) < 20:
+            if len(kbucket) < self.ksize:
                 kbucket[sender_nodeid] = sender_addr
             else:
                 lru_nodeid = next(iter(kbucket))
@@ -103,7 +104,7 @@ class DavidProtocol(RPCProtocol):
                 ip = bucket[nodeid][0]
                 port = bucket[nodeid][1]
                 heapq.heappush(h, (xor_dist, (ip, port, nodeid)))
-        for i in range(20):
+        for i in range(self.ksize):
             if len(h) == 0:
                 break
             popped = heapq.heappop(h)

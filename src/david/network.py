@@ -12,8 +12,10 @@ class Server:
 
     protocol_class = DavidProtocol
 
-    def __init__(self, node_id=None):
+    def __init__(self, node_id=None, ksize=20, alpha=3):
         self.node = Node(node_id or digest(random.getrandbits(255)))
+        self.ksize = ksize
+        self.alpha = alpha
         self.storage = dict()
         self.transport = None
         self.protocol = None
@@ -24,7 +26,7 @@ class Server:
             self.transport.close()
 
     def _create_protocol(self):
-        return self.protocol_class(self.node, self.storage)
+        return self.protocol_class(self.node, self.storage, self.ksize)
 
     async def listen(self, port, interface='0.0.0.0'):
         """
