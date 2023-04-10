@@ -12,6 +12,8 @@ logging.getLogger("rpcudp").setLevel(logging.CRITICAL)
 
 
 class DavidProtocol(RPCProtocol):
+    DEAD_MSG = 'NODE NOT ALIVE'
+
     def __init__(self, source_node, storage, ksize):
         super().__init__(wait_timeout = 0.5)
         self.source_node = source_node
@@ -58,7 +60,7 @@ class DavidProtocol(RPCProtocol):
     
     async def rpc_store(self, sender, nodeid, key, value):
         if not self.alive:
-            return f"node not alive!"
+            return self.DEAD_MSG
 
         log.debug(f'got a store request from {sender}, storing {key.hex()}={value}')
         await self.update_kbucket(sender, nodeid)
@@ -67,7 +69,7 @@ class DavidProtocol(RPCProtocol):
 
     async def rpc_find_value(self, sender, nodeid, key):
         if not self.alive:
-            return f"node not alive!"
+            return self.DEAD_MSG
 
         log.debug(f'got a find_value request from {sender}, finding {key.hex()}')
         await self.update_kbucket(sender, nodeid)
@@ -76,7 +78,7 @@ class DavidProtocol(RPCProtocol):
     
     async def rpc_find_node(self, sender, sender_nodeid):
         if not self.alive:
-            return f"node not alive!"
+            return self.DEAD_MSG
 
         log.debug(f'got a find_node request from {sender}')
         await self.update_kbucket(sender, sender_nodeid)
@@ -84,7 +86,7 @@ class DavidProtocol(RPCProtocol):
     
     async def rpc_kill(self, sender):
         if not self.alive:
-            return f"node not alive!"
+            return self.DEAD_MSG
 
         log.debug(f'got kill request from {sender}')
         self.alive=False
@@ -163,6 +165,8 @@ class DavidProtocol(RPCProtocol):
                     if result[0] == False:
                         continue
                     found = result[1]
+                    if(found == self.DEAD_MSG):
+                        continue
                     #print(found)
                     # For the new nodes you found, just add to kbucket
                     for triple2 in found:
