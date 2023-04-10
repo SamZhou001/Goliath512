@@ -38,6 +38,9 @@ class DavidProtocol(RPCProtocol):
                 kbucket[sender_nodeid] = sender_addr
             else:
                 lru_nodeid = next(iter(kbucket))
+                kbucket.pop(lru_nodeid)
+                kbucket[sender_nodeid] = sender_addr
+                """
                 lru_node_addr = kbucket[lru_nodeid]
                 # Address format is ip, then port
                 result = await self.call_ping(lru_node_addr[0], lru_node_addr[1], lru_nodeid, 
@@ -48,6 +51,8 @@ class DavidProtocol(RPCProtocol):
                 else:
                     kbucket.pop(lru_nodeid)
                     kbucket[sender_nodeid] = sender_addr
+                """
+
         log.debug(f'Updated {kbucket_idx}th kbucket to be {kbucket}')
     
     async def rpc_ping(self, sender, nodeid):

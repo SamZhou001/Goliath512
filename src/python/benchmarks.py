@@ -26,6 +26,7 @@ class Benchmark:
         self.kill_chance = None
 
     async def test1(self, network, peer_ids):
+        random.seed(3)
         id1 = random.choice(peer_ids)
         t1 = time.perf_counter()
         cid = network.upload(id1, "hi", 40)
