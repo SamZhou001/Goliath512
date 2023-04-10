@@ -15,7 +15,7 @@ logging.basicConfig(
 
 
 def create_port_to_node_id_mapping(num):
-    BASE = 8000
+    BASE = 9000
     PORTS = [i for i in range(BASE, BASE+num)]
     map = {}
     for port in PORTS:

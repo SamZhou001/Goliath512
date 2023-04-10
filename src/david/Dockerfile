@@ -31,5 +31,5 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 # CMD python3 david_node.py
-# ENTRYPOINT ["python3", "run_node.py"]
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+ENTRYPOINT ["python3", "run_node.py"]
+# ENTRYPOINT ["tail", "-f", "/dev/null"]
