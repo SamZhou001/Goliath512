@@ -8,14 +8,13 @@ def sleep():
     time.sleep(constants.SIM_INTERVAL)
 
 class Benchmark:
-
+    
     def __init__(self):
         self.upload_times = {}
         self.download_times = {}
         self.download_prob = {}
         self.k = None
         self.n_nodes = None
-        self.regional = None
         self.kill_chance = None
 
     def test1(self, network, peer_ids):
@@ -23,15 +22,16 @@ class Benchmark:
         t1 = time.perf_counter()
         cid = network.upload(id1, "hi", 40)
         t2 = time.perf_counter()
-        self.upload_times[self.k][self.n_nodes][self.regional][self.kill_chance] = t2 - t1
+        self.upload_times[self.k][self.n_nodes][self.kill_chance] = t2 - t1
         sleep()
         peer_ids_copy = list(peer_ids)
         peer_ids_copy.remove(id1)
         download_t = []
         killed_nodes = []
         successes = 0
-        for _ in range(10):
+        for _ in range(min(len(peer_id)//2, 10)):
             id2 = random.choice(peer_ids_copy)
+            peer_ids_copy.remove(id2)
             for peer_id in peer_ids:
                 if random.random() < self.kill_chance and peer_id != id2: # kill node
                     if peer_id not in killed_nodes:
@@ -49,12 +49,47 @@ class Benchmark:
             if fname in list(os.listdir(os.path.join("./storage/"), id2, "uploaded")):
                 download_t.append(t2-t1)
                 successes += 1
-        self.download_times[self.k][self.n_nodes][self.regional][self.kill_chance] = sum(download_t)/len(download_t)
-        self.download_prob[self.k][self.n_nodes][self.regional][self.kill_chance] = successes/10
-        sleep()
+        self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
+        self.download_prob[self.k][self.n_nodes][self.kill_chance] = successes/10
 
     def test2(self, network, peer_ids): # multiple uploads
-        pass
+        upload_t = []
+        testing_pairs = []
+        for i in range(10):
+            id1 = random.choice(peer_ids)
+            t1 = time.perf_counter()
+            cid = network.upload(id1, str(i), 40)
+            t2 = time.perf_counter()
+            testing_pairs += [(peer_id, cid, str(i), id1) for peer_id in peer_ids if peer_id != id1]
+            upload_t.append(t2-t1)
+        self.upload_times[self.k][self.n_nodes][self.kill_chance] = sum(upload_t)/len(upload_t)
+        sleep()
+        testing_pairs_copy = list(testing_pairs)
+        download_t = []
+        killed_nodes = []
+        successes = 0
+        for _ in range(10):
+            id2, cid, i, id1 = random.choice(testing_pairs_copy)
+            testing_pairs_copy.remove((id2, cid, i, id1))
+            for peer_id in peer_ids:
+                if random.random() < self.kill_chance and peer_id != id2: # kill node
+                    if peer_id not in killed_nodes:
+                        network.kill_node(peer_id)
+                        killed_nodes.append(peer_id)
+                else:
+                    if peer_id in killed_nodes:
+                        network.revive_node(peer_id)
+                        killed_nodes.remove(peer_id)
+            t1 = time.perf_counter()
+            network.download(id2, cid)
+            t2 = time.perf_counter()
+            #time.sleep(constants.DOWNLOAD_TIMER)
+            fname = str(id1) + "_" + i + ".txt"
+            if fname in list(os.listdir(os.path.join("./storage/"), id2, "uploaded")):
+                download_t.append(t2-t1)
+                successes += 1
+        self.download_times[self.k][self.n_nodes][self.kill_chance] = sum(download_t)/len(download_t)
+        self.download_prob[self.k][self.n_nodes][self.kill_chance] = successes/10
 
     def full_test(self, testNum):
         assert testNum in [1, 2]
@@ -68,27 +103,22 @@ class Benchmark:
                 self.upload_times[k][n_nodes] = {}
                 self.download_times[k][n_nodes] = {}
                 self.download_prob[k][n_nodes] = {}
-                for regional in constants.PARAMETERS['regional']:
-                    self.regional = regional
-                    self.upload_times[k][n_nodes][regional] = {}
-                    self.download_times[k][n_nodes][regional] = {}
-                    self.download_prob[k][n_nodes][regional] = {}
-                    for kill_chance in constants.PARAMETERS['kill_chance']:
-                        self.kill_chance = kill_chance
-                        self.upload_times[k][n_nodes][regional][kill_chance] = {}
-                        self.download_times[k][n_nodes][regional][kill_chance] = {}
-                        self.download_prob[k][n_nodes][regional][kill_chance] = {}
-                        network = Network(constants.BOOTSTRAP_PORT)
-                        config = constants.node_config(n_nodes, regional)
-                        peer_ids = [c['peer_id'] for c in config]
-                        for config in constants.NODE_CONFIG:
-                            sleep()
-                            network.add_node(config)
-                        sleep()
-                        if testNum == 1:
-                            self.test1(network, peer_ids)
-                        else:
-                            self.test2(network, peer_ids)
+                network = Network(constants.BOOTSTRAP_PORT, k)
+                config = constants.node_config(n_nodes)
+                peer_ids = [c['peer_id'] for c in config]
+                for c in config:
+                    sleep()
+                    network.add_node(c)
+                for kill_chance in constants.PARAMETERS['kill_chance']:
+                    self.kill_chance = kill_chance
+                    self.upload_times[k][n_nodes][kill_chance] = {}
+                    self.download_times[k][n_nodes][kill_chance] = {}
+                    self.download_prob[k][n_nodes][kill_chance] = {}
+                    sleep()
+                    if testNum == 1:
+                        self.test1(network, peer_ids)
+                    else:
+                        self.test2(network, peer_ids)
         return self.upload_times, self.download_times, self.download_prob
 
 if __name__ == "__main__":

@@ -25,7 +25,8 @@ log.setLevel(logging.DEBUG)
 
 
 class Network():
-    def __init__(self, bnodePort):
+    def __init__(self, bnodePort, k):
+        self.k = k
         self.bnodePort = bnodePort
         self.bnode = BootstrapNode(bnodePort)
         self.nodes = {}  # Map from peer_id of each node to the node itself; makes it easier to call individual node functions
@@ -66,7 +67,7 @@ class Network():
         dht_worker.start()
 
     def start_dht_server(self, port):
-        server = Server(node_id=digest(port))
+        server = Server(node_id=digest(port), ksize=self.k)
         loop = asyncio.new_event_loop()
         loop.set_debug(True)
         loop.run_until_complete(server.listen(port))
