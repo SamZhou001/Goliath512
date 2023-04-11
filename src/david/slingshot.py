@@ -103,11 +103,18 @@ class ValueSlingShot(SlingShot):
         make sure we tell the nearest node that *didn't* have
         the value to store it.
         """
+        log.debug(values)
+        '''
         value_counts = Counter(values)
+        log.debug(value_counts)
         if len(value_counts) != 1:
             log.warning("Got multiple values for key %i: %s",
                         self.node.long_id, str(values))
+        log.debug(value_counts)
         value = value_counts.most_common(1)[0][0]
+        log.debug(values)
+        '''
+        value = values[0]
 
         peer = self.nearest_without_value.popleft()
         if peer:

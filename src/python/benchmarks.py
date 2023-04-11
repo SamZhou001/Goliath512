@@ -34,7 +34,6 @@ class Benchmark:
         successes = 0
         for _ in range(min(len(peer_ids)//2, 10)):
             id2 = random.choice(peer_ids_copy)
-            print(id2)
             peer_ids_copy.remove(id2)
             for peer_id in peer_ids:
                 if random.random() < self.kill_chance and peer_id != id2: # kill node

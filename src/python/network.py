@@ -13,7 +13,7 @@ from node import Node
 from bnode import BootstrapNode
 import constants
 
-"""
+'''
 import logging
 handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -21,8 +21,7 @@ handler.setFormatter(formatter)
 log = logging.getLogger('david')
 log.addHandler(handler)
 log.setLevel(logging.DEBUG)
-"""
-
+'''
 
 class Network():
     def __init__(self, bnodePort, k, verbose):

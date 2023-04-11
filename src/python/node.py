@@ -10,9 +10,11 @@ from david.network import Server
 from node_timer import PingTimer, DownloadTimer
 import time
 import threading
+import logging
 
 import constants
 
+log = logging.getLogger(__name__)
 
 class Node(Service):
     def __init__(self, config, verbose):
@@ -188,14 +190,8 @@ class Node(Service):
                 print("Downloading other file")
             return
         self.downloading = cid
-        result = await self.get(cid)
+        peer_list = await self.get(cid)
         #peer_list = [peer for peer in result['value'] if peer[0] in self.peers]
-        if not result:
-            if self.verbose:
-                print("Downloading failed")
-            self.downloading = None
-            return
-        peer_list = result['value']
         self.download_peer_list = peer_list
         if not peer_list:
             if self.verbose:
