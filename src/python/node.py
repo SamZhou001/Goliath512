@@ -191,7 +191,6 @@ class Node(Service):
             return
         self.downloading = cid
         peer_list = await self.get(cid)
-        #peer_list = [peer for peer in result['value'] if peer[0] in self.peers]
         self.download_peer_list = peer_list
         if not peer_list:
             if self.verbose:

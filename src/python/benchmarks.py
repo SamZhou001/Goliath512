@@ -128,7 +128,7 @@ class Benchmark:
                 self.download_prob[k][n_nodes] = {}
                 for kill_chance in parameters['kill_chance']:
                     print(f"Progress: {counter}/{total_params}", end="\r")
-                    network = Network(constants.BOOTSTRAP_PORT, k, True)
+                    network = Network(constants.BOOTSTRAP_PORT, k, False)
                     config = constants.node_config(n_nodes)
                     peer_ids = [c['peer_id'] for c in config]
                     for c in config:
@@ -150,6 +150,7 @@ class Benchmark:
 if __name__ == "__main__":
     benchmark = Benchmark()
 
+    print("Running test 1 for k")
     upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1, constants.PARAMETERS_1))
     data_k_1 = {
         "upload_time": upload_times_1, 
@@ -159,6 +160,7 @@ if __name__ == "__main__":
     with open('data_k_1.json', 'w') as f:
         json.dump(data_k_1, f)
 
+    print("Running test 1 for n")
     upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1, constants.PARAMETERS_2))
     data_n_1 = {
         "upload_time": upload_times_1, 
@@ -167,7 +169,9 @@ if __name__ == "__main__":
     }
     with open('data_n_1.json', 'w') as f:
         json.dump(data_n_1, f)
+    
     '''
+    print("Running test 2 for k")
     upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2, constants.PARAMETERS_1))
     data_k_2 = {
         "upload_time": upload_times_2, 
@@ -177,6 +181,7 @@ if __name__ == "__main__":
     with open('data_k_2.json', 'w') as f:
         json.dump(data_k_2, f)
 
+    print("Running test 2 for n")
     upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2, constants.PARAMETERS_2))
     data_n_2 = {
         "upload_time": upload_times_2, 
