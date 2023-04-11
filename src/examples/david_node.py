@@ -14,27 +14,25 @@ log.setLevel(logging.DEBUG)
 
 log2 = logging.getLogger('rpcudp')
 log2.addHandler(handler)
-#log2.setLevel(logging.DEBUG)
-
-
+log2.setLevel(logging.DEBUG)
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Optional arguments
-    parser.add_argument("-i", "--ip", help="IP address of existing node", type=str, default=None)
     parser.add_argument("-p", "--port", help="port number of existing node", type=int, default=None)
 
     return parser.parse_args()
 
 
 def connect_to_bootstrap_node(args):
-    server = Server(node_id = digest('9000'))
-    loop = asyncio.get_event_loop()
+    server = Server(node_id = digest(args.port))
+    loop = asyncio.new_event_loop()
     loop.set_debug(True)
 
-    loop.run_until_complete(server.listen(9000))
-    bootstrap_node = (args.ip, int(args.port))
+    loop.run_until_complete(server.listen(int(args.port)))
+    IP = '0.0.0.0'
+    bootstrap_node = (IP, 9000)
     loop.run_until_complete(server.bootstrap([bootstrap_node]))
 
     try:
@@ -47,11 +45,11 @@ def connect_to_bootstrap_node(args):
 
 
 def create_bootstrap_node():
-    server = Server(node_id = digest('8000'))
+    server = Server(node_id = digest('9000'))
     loop = asyncio.new_event_loop()
     loop.set_debug(True)
 
-    loop.run_until_complete(server.listen(8000))
+    loop.run_until_complete(server.listen(9000))
 
     try:
         loop.run_forever()
@@ -65,7 +63,7 @@ def create_bootstrap_node():
 def main():
     args = parse_arguments()
 
-    if args.ip and args.port:
+    if args.port:
         connect_to_bootstrap_node(args)
     else:
         create_bootstrap_node()

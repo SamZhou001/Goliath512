@@ -19,10 +19,10 @@ log.setLevel(logging.DEBUG)
 
 log2 = logging.getLogger('rpcudp')
 log2.addHandler(handler)
-#log2.setLevel(logging.DEBUG)
+log2.setLevel(logging.DEBUG)
 
 async def run():
-    server = Server(node_id=digest('8470'))
+    server = Server(node_id=digest('9010'))
     await server.listen(8470)
     bootstrap_node = (sys.argv[1], int(sys.argv[2]))
     await server.bootstrap([bootstrap_node])
