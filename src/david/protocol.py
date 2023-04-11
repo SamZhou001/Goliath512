@@ -125,7 +125,7 @@ class DavidProtocol(RPCProtocol):
     
     def handle_call_response(self, result, node, new_node=None):
         if not result[0]:
-            log.warning(f"no response from {node}, removing from routing table")
+            log.info(f"no response from {node}, removing from routing table")
             self.router.remove_node_from_table(node)
             if new_node:
                 self.router.add_node_to_table(new_node)
