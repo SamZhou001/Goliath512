@@ -95,6 +95,8 @@ class Benchmark:
                         await network.revive_node(peer_id)
                         killed_nodes.remove(peer_id)
             sleep()
+            sleep()
+            sleep()
             t1 = time.perf_counter()
             network.download(id2, cid)
             fname = str(id1) + "_" + i + ".txt"
@@ -130,7 +132,7 @@ class Benchmark:
                 self.download_prob[k][n_nodes] = {}
                 for kill_chance in parameters['kill_chance']:
                     print(f"Progress: {counter}/{total_params}", end="\r")
-                    network = Network(constants.BOOTSTRAP_PORT, k, False)
+                    network = Network(constants.BOOTSTRAP_PORT, k, True)
                     config = constants.node_config(n_nodes)
                     peer_ids = [c['peer_id'] for c in config]
                     for c in config:
