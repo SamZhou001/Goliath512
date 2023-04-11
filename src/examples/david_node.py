@@ -12,9 +12,9 @@ log = logging.getLogger('david')
 log.addHandler(handler)
 log.setLevel(logging.DEBUG)
 
-log2 = logging.getLogger('rpcudp')
-log2.addHandler(handler)
-log2.setLevel(logging.DEBUG)
+# log2 = logging.getLogger('rpcudp')
+# log2.addHandler(handler)
+# log2.setLevel(logging.DEBUG)
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
