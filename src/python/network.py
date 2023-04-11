@@ -112,14 +112,15 @@ class Network():
         conn = connect('localhost', self.nodes[peerId].port)
         conn.root.kill()
         conn.close()
-    
+
         dht_port = self.nodes[peerId].dht_port
         await self.kill_dht_node(dht_port)
-    
+
     async def kill_dht_node(self, dht_port, ip='0.0.0.0'):
         server = Server()
         node_addr = (ip, dht_port)
-        await server.listen(0) # Listen to some random port, to make server.protocol not None
+        # Listen to some random port, to make server.protocol not None
+        await server.listen(0)
         result = await server.kill(node_addr)
         server.stop()
 
@@ -136,12 +137,13 @@ class Network():
     async def revive_dht_node(self, dht_port, ip='0.0.0.0'):
         server = Server()
         node_addr = (ip, dht_port)
-        await server.listen(0) # Listen to some random port, to make server.protocol not None
+        # Listen to some random port, to make server.protocol not None
+        await server.listen(0)
         result = await server.revive(node_addr)
         server.stop()
 
         return result[1]
-    
+
     def kill(self):
         active = multiprocessing.active_children()
         for child in active:
@@ -154,6 +156,7 @@ class Network():
             shutil.rmtree(f'./storage/{peer_id}/uploaded')
             os.makedirs(f'./storage/{peer_id}/uploaded')
 
+
 async def test(network):
     cid = network.upload(100, "hi", 40)
     time.sleep(constants.SIM_INTERVAL)
@@ -161,7 +164,7 @@ async def test(network):
     time.sleep(constants.SIM_INTERVAL)
 
 if __name__ == "__main__":
-    network = Network(constants.BOOTSTRAP_PORT, 3)
+    network = Network(constants.BOOTSTRAP_PORT, 3, True)
     for config in constants.node_config(6):
         time.sleep(constants.SIM_INTERVAL)
         network.add_node(config)
