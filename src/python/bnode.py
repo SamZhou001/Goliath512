@@ -9,7 +9,7 @@ import constants
 
 class BootstrapNode(Service):
     def __init__(self, port):
-        print("Bootstrap node initialized")
+        #print("Bootstrap node initialized")
         self.port = port
         self.peer_store = {}
         self.last_pinged = {}
@@ -45,7 +45,6 @@ class BootstrapNode(Service):
         self.last_pinged = {}
 
     def process_dead_node(self, dead_node):
-        print(f"DEAD {dead_node}")
         last_pinged = copy.deepcopy(self.last_pinged)
         for peer_id in last_pinged:
             conn = connect('localhost', last_pinged[peer_id])

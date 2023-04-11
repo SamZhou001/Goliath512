@@ -25,9 +25,10 @@ log.setLevel(logging.DEBUG)
 
 
 class Network():
-    def __init__(self, bnodePort, k):
+    def __init__(self, bnodePort, k, verbose):
         self.k = k
         self.bnodePort = bnodePort
+        self.verbose = verbose
         self.bnode = BootstrapNode(bnodePort)
         self.nodes = {}  # Map from peer_id of each node to the node itself; makes it easier to call individual node functions
         if os.path.exists('./storage'):
@@ -57,7 +58,7 @@ class Network():
 
     def add_node(self, config):
         config['bootstrap_port'] = constants.BOOTSTRAP_PORT
-        node = Node(config)
+        node = Node(config, self.verbose)
         self.nodes[node.peer_id] = node
         node_worker = multiprocessing.Process(
             target=self.add_job, args=(node,))
@@ -111,14 +112,15 @@ class Network():
         conn = connect('localhost', self.nodes[peerId].port)
         conn.root.kill()
         conn.close()
-    
-        dht_port = self.nodes[peerId].port + 1000
+
+        dht_port = self.nodes[peerId].dht_port
         await self.kill_dht_node(dht_port)
-    
+
     async def kill_dht_node(self, dht_port, ip='0.0.0.0'):
         server = Server()
         node_addr = (ip, dht_port)
-        await server.listen(0) # Listen to some random port, to make server.protocol not None
+        # Listen to some random port, to make server.protocol not None
+        await server.listen(0)
         result = await server.kill(node_addr)
         server.stop()
 
@@ -129,17 +131,42 @@ class Network():
         conn.root.revive()
         conn.close()
 
-        dht_port = self.nodes[peerId].port + 1000
+        dht_port = self.nodes[peerId].dht_port
         await self.revive_dht_node(dht_port)
 
     async def revive_dht_node(self, dht_port, ip='0.0.0.0'):
         server = Server()
         node_addr = (ip, dht_port)
-        await server.listen(0) # Listen to some random port, to make server.protocol not None
+        # Listen to some random port, to make server.protocol not None
+        await server.listen(0)
         result = await server.revive(node_addr)
         server.stop()
 
         return result[1]
 
+    def kill(self):
+        active = multiprocessing.active_children()
+        for child in active:
+            child.terminate()
+
+    def reset(self):
+        for peer_id in os.listdir('./storage'):
+            shutil.rmtree(f'./storage/{peer_id}/local')
+            os.makedirs(f'./storage/{peer_id}/local')
+            shutil.rmtree(f'./storage/{peer_id}/uploaded')
+            os.makedirs(f'./storage/{peer_id}/uploaded')
+
+
+async def test(network):
+    cid = network.upload(100, "hi", 40)
+    time.sleep(constants.SIM_INTERVAL)
+    network.download(101, cid)
+    time.sleep(constants.SIM_INTERVAL)
+
 if __name__ == "__main__":
-    pass
+    network = Network(constants.BOOTSTRAP_PORT, 3, True)
+    for config in constants.node_config(6):
+        time.sleep(constants.SIM_INTERVAL)
+        network.add_node(config)
+    time.sleep(constants.SIM_INTERVAL)
+    asyncio.run(test(network))
