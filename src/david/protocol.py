@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import time
 
 from rpcudp.protocol import RPCProtocol
 
@@ -21,12 +22,14 @@ class DavidProtocol(RPCProtocol):
         self.ksize = ksize
 
     def rpc_ping(self, sender, nodeid):
+        time.sleep(0.07)
         log.debug(f'got a ping request from {sender}')
         source = Node(nodeid, sender[0], sender[1])
         self.handle_if_new(source)
         return self.source_node.id
     
     def rpc_store(self, sender, nodeid, key, value):
+        time.sleep(0.07)
         log.debug(f'got a store request from {sender}, storing {int(key.hex(), 16)}={value}')
         source = Node(nodeid, sender[0], sender[1])
         self.handle_if_new(source)
@@ -34,6 +37,7 @@ class DavidProtocol(RPCProtocol):
         return True
 
     def rpc_find_value(self, sender, nodeid, key):
+        time.sleep(0.07)
         log.debug(f'got a find_value request from {sender}, finding {int(key.hex(), 16)}')
         source = Node(nodeid, sender[0], sender[1])
         self.handle_if_new(source)
@@ -43,6 +47,7 @@ class DavidProtocol(RPCProtocol):
         return {'value': value}
     
     def rpc_find_node(self, sender, sender_nodeid, key):
+        time.sleep(0.07)
         log.debug(f'finding neighbors of {int(sender_nodeid.hex(), 16)} in local table')
         source = Node(sender_nodeid, sender[0], sender[1])
         self.handle_if_new(source)
