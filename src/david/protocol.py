@@ -12,8 +12,6 @@ logging.getLogger("rpcudp").setLevel(logging.CRITICAL)
 
 
 class DavidProtocol(RPCProtocol):
-    DEAD_MSG = 'NODE NOT ALIVE'
-
     def __init__(self, source_node, storage, ksize):
         super().__init__(wait_timeout = 1)
         self.source_node = source_node
