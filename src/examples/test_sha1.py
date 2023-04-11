@@ -11,6 +11,7 @@ def convert_to_long_id(id):
 
 def get_k_closest_nodes(key, nodes, k):
     long_id_key = int(digest(key).hex(), 16)
+    pprint(f"Key {key} long id is {long_id_key}")
     heap = []
 
     for node in nodes:

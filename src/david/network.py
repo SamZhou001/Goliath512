@@ -15,7 +15,7 @@ class Server:
 
     protocol_class = DavidProtocol
 
-    def __init__(self, node_id=None, ksize=20, alpha=3):
+    def __init__(self, node_id=None, ksize=3, alpha=3):
         self.node = Node(node_id or digest(random.getrandbits(255)))
         self.ksize = ksize
         self.alpha = alpha
@@ -72,7 +72,7 @@ class Server:
         slingshot = NodeSlingShot(self.protocol, node, nearest, self.ksize, self.alpha)
         nodes = await slingshot.find()
 
-        log.info(f"setting {dkey.long_id} on {list(map(str, nodes))}")
+        log.info(f"setting {node.long_id} on {list(map(str, nodes))}")
         biggest = max([n.distance_to(node) for n in nodes])
         if self.node.distance_to(node) < biggest:
             self.storage[dkey] = value

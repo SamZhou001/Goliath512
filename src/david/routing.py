@@ -40,7 +40,7 @@ class RoutingTable:
                 # LRU Policy for nodes in kbucket
                 lru_node = next(iter(kbucket)) # get the first node
                 lru_node_addr = (kbucket[lru_node].ip, kbucket[lru_node].port)
-                asyncio.ensure_future(self.protocol.call_ping(lru_node_addr, lru_node, node))
+                asyncio.ensure_future(self.protocol.call_ping(lru_node_addr, kbucket[lru_node], node))
         log.debug(self.get_populated_kbuckets())
 
     def remove_node_from_table(self, node):

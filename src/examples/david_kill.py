@@ -22,7 +22,7 @@ log2.setLevel(logging.DEBUG)
 
 async def run():
     server = Server()
-    await server.listen(9001)
+    await server.listen(0)
     addr = (sys.argv[1], int(sys.argv[2]))
     result = await server.kill(addr)
     print(result)

@@ -79,6 +79,9 @@ class NodeHeap:
     def have_contacted_all(self):
         return len(self.get_uncontacted()) == 0
 
+    def popleft(self):
+        return heapq.heappop(self.heap)[1] if self else None
+
     def __len__(self):
         return min(len(self.heap), self.maxsize)
     

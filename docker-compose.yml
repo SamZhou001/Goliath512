@@ -16,6 +16,8 @@ services:
         PORT: 9001
     restart: always
     network_mode: "host"
+    depends_on:
+      - david-test-node-0
   david-test-node-2:
     image: david-node-2
     build:
@@ -24,6 +26,8 @@ services:
         PORT: 9002
     restart: always
     network_mode: "host"
+    depends_on:
+      - david-test-node-1
   david-test-node-3:
     image: david-node-3
     build:
@@ -32,6 +36,8 @@ services:
         PORT: 9003
     restart: always
     network_mode: "host"
+    depends_on:
+      - david-test-node-2
   david-test-node-4:
     image: david-node-4
     build:
@@ -40,6 +46,8 @@ services:
         PORT: 9004
     restart: always
     network_mode: "host"
+    depends_on:
+      - david-test-node-3
   david-test-node-5:
     image: david-node-5
     build:
@@ -48,3 +56,5 @@ services:
         PORT: 9005
     restart: always
     network_mode: "host"
+    depends_on:
+      - david-test-node-4

@@ -22,21 +22,21 @@ class DavidProtocol(RPCProtocol):
         self.alive = True
         self.ksize = ksize
 
-    async def rpc_ping(self, sender, nodeid):
+    def rpc_ping(self, sender, nodeid):
         log.debug(f'got a ping request from {sender}')
         source = Node(nodeid, sender[0], sender[1])
         self.handle_if_new(source)
         return self.source_node.id
     
-    async def rpc_store(self, sender, nodeid, key, value):
-        log.debug(f'got a store request from {sender}, storing {key.hex()}={value}')
+    def rpc_store(self, sender, nodeid, key, value):
+        log.debug(f'got a store request from {sender}, storing {int(key.hex(), 16)}={value}')
         source = Node(nodeid, sender[0], sender[1])
         self.handle_if_new(source)
         self.storage[key] = value
         return True
 
-    async def rpc_find_value(self, sender, nodeid, key):
-        log.debug(f'got a find_value request from {sender}, finding {key.hex()}')
+    def rpc_find_value(self, sender, nodeid, key):
+        log.debug(f'got a find_value request from {sender}, finding {int(key.hex(), 16)}')
         source = Node(nodeid, sender[0], sender[1])
         self.handle_if_new(source)
         value = self.storage.get(key, None)
@@ -44,7 +44,7 @@ class DavidProtocol(RPCProtocol):
             return self.rpc_find_node(sender, nodeid, key)
         return {'value': value}
     
-    async def rpc_find_node(self, sender, sender_nodeid, key):
+    def rpc_find_node(self, sender, sender_nodeid, key):
         log.debug(f'finding neighbors of {int(sender_nodeid.hex(), 16)} in local table')
         source = Node(sender_nodeid, sender[0], sender[1])
         self.handle_if_new(source)
@@ -52,12 +52,12 @@ class DavidProtocol(RPCProtocol):
         neighbors = self.router.find_neighbors(node, exclude=source)
         return list(map(tuple, neighbors))
     
-    async def rpc_kill(self, sender):
+    def rpc_kill(self, sender):
         log.debug(f'got kill request from {sender}')
         self.alive=False
         return self.alive
 
-    async def rpc_revive(self, sender):
+    def rpc_revive(self, sender):
         log.debug(f'got revive request from {sender}')
         self.alive=True
         return self.alive
@@ -78,7 +78,7 @@ class DavidProtocol(RPCProtocol):
 
     async def call_find_value(self, node_to_ask, key):
         address = (node_to_ask.ip, node_to_ask.port)
-        result = await self.find_value(address, self.source_node.id, key)
+        result = await self.find_value(address, self.source_node.id, key.id)
         return self.handle_call_response(result, node_to_ask)
     
     async def call_kill(self, node_to_ask_ip, node_to_ask_port):
