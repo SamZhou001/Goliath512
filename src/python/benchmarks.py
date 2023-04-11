@@ -113,21 +113,21 @@ class Benchmark:
             self.download_times[self.k][self.n_nodes][self.kill_chance] = 0
         self.download_prob[self.k][self.n_nodes][self.kill_chance] = successes/10
 
-    async def full_test(self, testNum):
+    async def full_test(self, testNum, parameters):
         assert testNum in [1, 2]
         counter = 0
-        total_params = len(constants.PARAMETERS['k']) * len(constants.PARAMETERS['nodes']) * len(constants.PARAMETERS['kill_chance'])
-        for k in constants.PARAMETERS['k']:
+        total_params = len(parameters['k']) * len(parameters['nodes']) * len(parameters['kill_chance'])
+        for k in parameters['k']:
             self.k = k
             self.upload_times[k] = {}
             self.download_times[k] = {}
             self.download_prob[k] = {}
-            for n_nodes in constants.PARAMETERS['nodes']:
+            for n_nodes in parameters['nodes']:
                 self.n_nodes = n_nodes
                 self.upload_times[k][n_nodes] = {}
                 self.download_times[k][n_nodes] = {}
                 self.download_prob[k][n_nodes] = {}
-                for kill_chance in constants.PARAMETERS['kill_chance']:
+                for kill_chance in parameters['kill_chance']:
                     print(f"Progress: {counter}/{total_params}", end="\r")
                     network = Network(constants.BOOTSTRAP_PORT, k, True)
                     config = constants.node_config(n_nodes)
@@ -150,21 +150,40 @@ class Benchmark:
 
 if __name__ == "__main__":
     benchmark = Benchmark()
-    upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1))
-    data_1 = {
+
+    upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1, constants.PARAMETERS_1))
+    data_k_1 = {
         "upload_time": upload_times_1, 
         "download_time": download_times_1, 
         "download_prob": download_prob_1
     }
-    with open('data_1.json', 'w') as f:
-        json.dump(data_1, f)
+    with open('data_k_1.json', 'w') as f:
+        json.dump(data_k_1, f)
+
+    upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1, constants.PARAMETERS_2))
+    data_n_1 = {
+        "upload_time": upload_times_1, 
+        "download_time": download_times_1, 
+        "download_prob": download_prob_1
+    }
+    with open('data_n_1.json', 'w') as f:
+        json.dump(data_n_1, f)
     '''
-    upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2))
-    data_2 = {
+    upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2, constants.PARAMETERS_1))
+    data_k_2 = {
         "upload_time": upload_times_2, 
         "download_time": download_times_2, 
         "download_prob": download_prob_2
     }
-    with open('data_2.json', 'w') as f:
-        json.dump(data_2, f)
+    with open('data_k_2.json', 'w') as f:
+        json.dump(data_k_2, f)
+
+    upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2, constants.PARAMETERS_2))
+    data_n_2 = {
+        "upload_time": upload_times_2, 
+        "download_time": download_times_2, 
+        "download_prob": download_prob_2
+    }
+    with open('data_n_2.json', 'w') as f:
+        json.dump(data_n_2, f)
     '''

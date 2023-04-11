@@ -162,7 +162,7 @@ async def test(network):
 
 if __name__ == "__main__":
     network = Network(constants.BOOTSTRAP_PORT, 3)
-    for config in constants.NODE_CONFIG:
+    for config in constants.node_config(6):
         time.sleep(constants.SIM_INTERVAL)
         network.add_node(config)
     time.sleep(constants.SIM_INTERVAL)

@@ -17,16 +17,6 @@ DISTANCES = [
     [16200, 11700, 16500, 12800, 8600, 0]
 ] # km
 DELAY_RATE = 1/200 # ms/km
-NODE_CONFIG = [
-    {
-        "peer_id": 100 + i,
-        "port": 8000 + i,
-        "dht_port": 9000 + i,
-        "connect_prob": 1,
-        "region": REGIONS[i%6]
-    }
-    for i in range(NUM_NODES)
-]
 '''
 PARAMETERS = {
     "k": [1, 3, 10],
@@ -34,10 +24,16 @@ PARAMETERS = {
     "kill_chance": [0, 0.1, 0.25]
 }
 '''
-PARAMETERS = {
-    "k": [1],
-    "nodes": [6],
-    "kill_chance": [0]
+PARAMETERS_1 = {
+    "k": [1, 3, 6, 9, 12],
+    "nodes": [12],
+    "kill_chance": [0, 0.25]
+}
+
+PARAMETERS_2 = {
+    "k": [3],
+    "nodes": [6, 12, 18, 24, 30],
+    "kill_chance": [0, 0.25]
 }
 
 
