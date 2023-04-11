@@ -5,6 +5,9 @@ import logging
 from david.protocol import DavidProtocol
 from david.node import Node
 from david.utils import digest
+from david.slingshot import NodeSlingShot
+
+from collections import OrderedDict
 
 log = logging.getLogger(__name__)
 
@@ -16,7 +19,7 @@ class Server:
         self.node = Node(node_id or digest(random.getrandbits(255)))
         self.ksize = ksize
         self.alpha = alpha
-        self.storage = dict()
+        self.storage = OrderedDict()
         self.transport = None
         self.protocol = None
         self.other_server_nodes = None
@@ -42,9 +45,12 @@ class Server:
         log.debug(f'Attempting to bootstrap node with {len(addrs)} initial contacts')
         coroutine_objects = list(map(self.bootstrap_node, addrs))
         gathered = await asyncio.gather(*coroutine_objects)
+        nodes = [node for node in gathered if node is not None]
+        slingshot = NodeSlingShot(self.protocol, self.node, nodes, self.ksize, self.alpha)
+        return await slingshot.find()
 
     async def bootstrap_node(self, addr):
-        result = await self.protocol.call_ping(addr[0], addr[1], digest(str(addr[1])))
+        result = await self.protocol.ping(addr, self.node.id)
         return Node(result[1], addr[0], addr[1]) if result[0] else None
     
     async def set(self, key, value):
