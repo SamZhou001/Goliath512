@@ -1,3 +1,4 @@
+from collections import Counter
 import logging
 
 from david.node import Node, NodeHeap
@@ -39,7 +40,6 @@ class SlingShot:
     async def _nodes_found(self, responses):
         raise NotImplementedError
 
-
 class NodeSlingShot(SlingShot):
     async def find(self):
         return await self._find(self.protocol.call_find_node)
@@ -57,6 +57,62 @@ class NodeSlingShot(SlingShot):
         if self.nearest.have_contacted_all():
             return list(self.nearest)
         return await self.find()
+
+class ValueSlingShot(SlingShot):
+    def __init__(self, protocol, node, peers, ksize, alpha):
+        SlingShot.__init__(self, protocol, node, peers, ksize, alpha)
+        # keep track of the single nearest node without value - per
+        # section 2.3 so we can set the key there if found
+        self.nearest_without_value = NodeHeap(self.node, 1)
+
+    async def find(self):
+        """
+        Find either the closest nodes or the value requested.
+        """
+        return await self._find(self.protocol.call_find_value)
+
+    async def _nodes_found(self, responses):
+        """
+        Handle the result of an iteration in _find.
+        """
+        toremove = []
+        found_values = []
+        for peerid, response in responses.items():
+            response = RPCFindResponse(response)
+            if not response.happened():
+                toremove.append(peerid)
+            elif response.has_value():
+                found_values.append(response.get_value())
+            else:
+                peer = self.nearest.get_node(peerid)
+                self.nearest_without_value.push(peer)
+                self.nearest.push(response.get_node_list())
+        self.nearest.remove(toremove)
+
+        if found_values:
+            return await self._handle_found_values(found_values)
+        if self.nearest.have_contacted_all():
+            # not found!
+            return None
+        return await self.find()
+
+    async def _handle_found_values(self, values):
+        """
+        We got some values!  Exciting.  But let's make sure
+        they're all the same or freak out a little bit.  Also,
+        make sure we tell the nearest node that *didn't* have
+        the value to store it.
+        """
+        value_counts = Counter(values)
+        if len(value_counts) != 1:
+            log.warning("Got multiple values for key %i: %s",
+                        self.node.long_id, str(values))
+        value = value_counts.most_common(1)[0][0]
+
+        peer = self.nearest_without_value.popleft()
+        if peer:
+            await self.protocol.call_store(peer, self.node.id, value)
+        return value
     
 class RPCFindResponse:
     def __init__(self, response):

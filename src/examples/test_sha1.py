@@ -28,9 +28,9 @@ def create_rid_pairs(num):
     return [(convert_to_long_id(rid[0]), rid[1]) for rid in rids]
 
 def main():
-    KEY = '9000'
-    k = 4
-    long_rids = create_rid_pairs(4)
+    KEY = 'CS512'
+    k = 3
+    long_rids = create_rid_pairs(6)
     pprint(long_rids)
     k_closest = get_k_closest_nodes(KEY, long_rids, k)
     generate_msg(KEY, k_closest, k)

@@ -45,7 +45,7 @@ def connect_to_bootstrap_node(port):
     loop.set_debug(True)
 
     loop.run_until_complete(server.listen(port))
-    bootstrap_node = ('0.0.0.0', port)
+    bootstrap_node = ('0.0.0.0', 9000)
     loop.run_until_complete(server.bootstrap([bootstrap_node]))
 
     try:
