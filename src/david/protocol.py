@@ -10,6 +10,7 @@ from david.utils import digest
 
 log = logging.getLogger(__name__)
 logging.getLogger("rpcudp").setLevel(logging.CRITICAL)
+logging.getLogger('asyncio').setLevel(logging.CRITICAL) 
 
 
 class DavidProtocol(RPCProtocol):
