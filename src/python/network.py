@@ -20,7 +20,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 log = logging.getLogger('david')
 log.addHandler(handler)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.CRITICAL)
 '''
 
 class Network():

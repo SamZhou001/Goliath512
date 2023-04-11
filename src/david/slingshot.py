@@ -1,4 +1,5 @@
 from collections import Counter
+from queue import Queue
 import logging
 
 from david.node import Node, NodeHeap
@@ -76,20 +77,20 @@ class ValueSlingShot(SlingShot):
         Handle the result of an iteration in _find.
         """
         toremove = []
-        found_values = []
+        found_values = Queue(maxsize=self.alpha)
         for peerid, response in responses.items():
             response = RPCFindResponse(response)
             if not response.happened():
                 toremove.append(peerid)
             elif response.has_value():
-                found_values.append(response.get_value())
+                found_values.put(response.get_value())
             else:
                 peer = self.nearest.get_node(peerid)
                 self.nearest_without_value.push(peer)
                 self.nearest.push(response.get_node_list())
         self.nearest.remove(toremove)
 
-        if found_values:
+        if found_values.qsize() > 0:
             return await self._handle_found_values(found_values)
         if self.nearest.have_contacted_all():
             # not found!
@@ -103,18 +104,7 @@ class ValueSlingShot(SlingShot):
         make sure we tell the nearest node that *didn't* have
         the value to store it.
         """
-        log.debug(values)
-        '''
-        value_counts = Counter(values)
-        log.debug(value_counts)
-        if len(value_counts) != 1:
-            log.warning("Got multiple values for key %i: %s",
-                        self.node.long_id, str(values))
-        log.debug(value_counts)
-        value = value_counts.most_common(1)[0][0]
-        log.debug(values)
-        '''
-        value = values[0]
+        value = values.get()
 
         peer = self.nearest_without_value.popleft()
         if peer:
