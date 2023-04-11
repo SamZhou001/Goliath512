@@ -5,6 +5,9 @@ import logging
 from david.protocol import DavidProtocol
 from david.node import Node
 from david.utils import digest
+from david.slingshot import NodeSlingShot, ValueSlingShot
+
+from collections import OrderedDict
 
 log = logging.getLogger(__name__)
 
@@ -12,11 +15,11 @@ class Server:
 
     protocol_class = DavidProtocol
 
-    def __init__(self, node_id=None, ksize=20, alpha=3):
+    def __init__(self, node_id=None, ksize=3, alpha=3):
         self.node = Node(node_id or digest(random.getrandbits(255)))
         self.ksize = ksize
         self.alpha = alpha
-        self.storage = dict()
+        self.storage = OrderedDict()
         self.transport = None
         self.protocol = None
         self.other_server_nodes = None
@@ -42,9 +45,12 @@ class Server:
         log.debug(f'Attempting to bootstrap node with {len(addrs)} initial contacts')
         coroutine_objects = list(map(self.bootstrap_node, addrs))
         gathered = await asyncio.gather(*coroutine_objects)
+        nodes = [node for node in gathered if node is not None]
+        slingshot = NodeSlingShot(self.protocol, self.node, nodes, self.ksize, self.alpha)
+        return await slingshot.find()
 
     async def bootstrap_node(self, addr):
-        result = await self.protocol.call_ping(addr[0], addr[1], digest(str(addr[1])))
+        result = await self.protocol.ping(addr, self.node.id)
         return Node(result[1], addr[0], addr[1]) if result[0] else None
     
     async def set(self, key, value):
@@ -55,12 +61,23 @@ class Server:
     async def set_digest(self, dkey, value):
         # Simple Implementation
         # Set the k,v pair on this node and the bootstrap nodes as well
-        self.storage[dkey] = value
+        node = Node(dkey)
 
-        k_closest = await self.protocol.slingshot()
-        k_closest_nodes = [Node(triple[2], triple[0], triple[1]) for triple in k_closest]
-        log.debug(f"k_closest_nodes in set_digest are {k_closest_nodes}")
-        results = [self.protocol.call_store(n, dkey, value) for n in k_closest_nodes]
+        nearest = self.protocol.router.find_neighbors(node)
+        if not nearest:
+            log.warning("There are no known neighbors to set key %s",
+                        dkey.hex())
+            return False
+
+        slingshot = NodeSlingShot(self.protocol, node, nearest, self.ksize, self.alpha)
+        nodes = await slingshot.find()
+
+        log.info(f"setting {node.long_id} on {list(map(str, nodes))}")
+        biggest = max([n.distance_to(node) for n in nodes])
+        if self.node.distance_to(node) < biggest:
+            self.storage[dkey] = value
+
+        results = [self.protocol.call_store(n, dkey, value) for n in nodes]
 
         # return true only if at least one store call succeeded
         return any(await asyncio.gather(*results))
@@ -72,24 +89,14 @@ class Server:
         # if this node has it, return it
         if self.storage.get(dkey) is not None:
             return self.storage.get(dkey)
-
-        k_closest = await self.protocol.slingshot()
-        k_closest_nodes = [Node(triple[2], triple[0], triple[1]) for triple in k_closest]
         
-        tasks = [self.protocol.call_find_value(n, dkey) for n in k_closest_nodes]
-        
-        while tasks:
-            finished, unfinished = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-
-            for x in finished:
-                result = x.result()
-                
-                # Return upon the first non-None result
-                if result != None and result["value"] != None:
-                    
-                    return result
-
-            tasks = unfinished
+        node = Node(dkey)
+        nearest = self.protocol.router.find_neighbors(node)
+        if not nearest:
+            log.warning("There are no known neighbors to get key %s", key)
+            return None
+        slingshot = ValueSlingShot(self.protocol, node, nearest, self.ksize, self.alpha)
+        return await slingshot.find()
 
     async def kill(self, addr):
         result = await self.protocol.call_kill(addr[0], addr[1])

@@ -1,7 +1,60 @@
 version: '3.9'
 services:
-  david-bootstrap:
-    image: david-bootstrap-node
-    build: ./src/david
+  david-test-node-0:
+    image: david-node-0
+    build:
+      context: ./src/david
+      args:
+        PORT: 9000
     restart: always
     network_mode: "host"
+  david-test-node-1:
+    image: david-node-1
+    build:
+      context: ./src/david
+      args:
+        PORT: 9001
+    restart: always
+    network_mode: "host"
+    depends_on:
+      - david-test-node-0
+  david-test-node-2:
+    image: david-node-2
+    build:
+      context: ./src/david
+      args:
+        PORT: 9002
+    restart: always
+    network_mode: "host"
+    depends_on:
+      - david-test-node-1
+  david-test-node-3:
+    image: david-node-3
+    build:
+      context: ./src/david
+      args:
+        PORT: 9003
+    restart: always
+    network_mode: "host"
+    depends_on:
+      - david-test-node-2
+  david-test-node-4:
+    image: david-node-4
+    build:
+      context: ./src/david
+      args:
+        PORT: 9004
+    restart: always
+    network_mode: "host"
+    depends_on:
+      - david-test-node-3
+  david-test-node-5:
+    image: david-node-5
+    build:
+      context: ./src/david
+      args:
+        PORT: 9005
+    restart: always
+    network_mode: "host"
+    depends_on:
+      - david-test-node-4

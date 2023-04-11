@@ -1,11 +1,11 @@
 import logging
-import math
-import time
 import asyncio
-import heapq
 
 from rpcudp.protocol import RPCProtocol
-from collections import OrderedDict
+
+from david.node import Node
+from david.routing import RoutingTable
+from david.utils import digest
 
 log = logging.getLogger(__name__)
 logging.getLogger("rpcudp").setLevel(logging.CRITICAL)
@@ -15,135 +15,71 @@ class DavidProtocol(RPCProtocol):
     DEAD_MSG = 'NODE NOT ALIVE'
 
     def __init__(self, source_node, storage, ksize):
-        super().__init__(wait_timeout = 0.5)
+        super().__init__(wait_timeout = 1)
         self.source_node = source_node
         self.storage = storage
-        self.kbuckets = [OrderedDict() for i in range(160)]
+        self.router = RoutingTable(self, ksize, source_node)
         self.alive = True
         self.ksize = ksize
 
-    def get_kbucket_idx(self, sender_nodeid):
-        xor_dist = int(self.source_node.id.hex(), 16) ^ int(sender_nodeid.hex(), 16)
-        #log.debug(f"xor dist is {xor_dist}")
-        return math.floor(math.log(xor_dist, 2))
-    
-    async def update_kbucket(self, sender_addr, sender_nodeid):
-        #log.debug(f"Getting update kbucket req from {sender_addr}, I am {self.source_node.port}")
-        kbucket_idx = self.get_kbucket_idx(sender_nodeid)
-        kbucket = self.kbuckets[kbucket_idx]
-        if sender_nodeid in kbucket:
-            kbucket.move_to_end(sender_nodeid)
-        else:
-            if len(kbucket) < self.ksize:
-                kbucket[sender_nodeid] = sender_addr
-            else:
-                lru_nodeid = next(iter(kbucket))
-                kbucket.pop(lru_nodeid)
-                kbucket[sender_nodeid] = sender_addr
-                """
-                lru_node_addr = kbucket[lru_nodeid]
-                # Address format is ip, then port
-                result = await self.call_ping(lru_node_addr[0], lru_node_addr[1], lru_nodeid, 
-                                              from_update_kbucket=True)
-                # result will be a tuple - first arg is boolean response received, second arg is value
-                if result[0]:
-                    kbucket.move_to_end(lru_nodeid)
-                else:
-                    kbucket.pop(lru_nodeid)
-                    kbucket[sender_nodeid] = sender_addr
-                """
-
-        log.debug(f'Updated {kbucket_idx}th kbucket to be {kbucket}')
-    
-    async def rpc_ping(self, sender, nodeid):
-        if not self.alive:
-            return f"node not alive!"
-
+    def rpc_ping(self, sender, nodeid):
         log.debug(f'got a ping request from {sender}')
-        await self.update_kbucket(sender, nodeid)
+        source = Node(nodeid, sender[0], sender[1])
+        self.handle_if_new(source)
         return self.source_node.id
     
-    async def rpc_store(self, sender, nodeid, key, value):
-        if not self.alive:
-            return self.DEAD_MSG
-
-        log.debug(f'got a store request from {sender}, storing {key.hex()}={value}')
-        await self.update_kbucket(sender, nodeid)
+    def rpc_store(self, sender, nodeid, key, value):
+        log.debug(f'got a store request from {sender}, storing {int(key.hex(), 16)}={value}')
+        source = Node(nodeid, sender[0], sender[1])
+        self.handle_if_new(source)
         self.storage[key] = value
         return True
 
-    async def rpc_find_value(self, sender, nodeid, key):
-        if not self.alive:
-            return self.DEAD_MSG
-
-        log.debug(f'got a find_value request from {sender}, finding {key.hex()}')
-        await self.update_kbucket(sender, nodeid)
+    def rpc_find_value(self, sender, nodeid, key):
+        log.debug(f'got a find_value request from {sender}, finding {int(key.hex(), 16)}')
+        source = Node(nodeid, sender[0], sender[1])
+        self.handle_if_new(source)
         value = self.storage.get(key, None)
+        if value is None:
+            return self.rpc_find_node(sender, nodeid, key)
         return {'value': value}
     
-    async def rpc_find_node(self, sender, sender_nodeid):
-        if not self.alive:
-            return self.DEAD_MSG
-
-        log.debug(f'got a find_node request from {sender}')
-        await self.update_kbucket(sender, sender_nodeid)
-        return self.find_kclosest_to_self()  
+    def rpc_find_node(self, sender, sender_nodeid, key):
+        log.debug(f'finding neighbors of {int(sender_nodeid.hex(), 16)} in local table')
+        source = Node(sender_nodeid, sender[0], sender[1])
+        self.handle_if_new(source)
+        node = Node(key)
+        neighbors = self.router.find_neighbors(node, exclude=source)
+        return list(map(tuple, neighbors))
     
-    async def rpc_kill(self, sender):
-        if not self.alive:
-            return self.DEAD_MSG
-
+    def rpc_kill(self, sender):
         log.debug(f'got kill request from {sender}')
         self.alive=False
         return self.alive
 
-    async def rpc_revive(self, sender):
+    def rpc_revive(self, sender):
         log.debug(f'got revive request from {sender}')
         self.alive=True
         return self.alive
 
-    def find_kclosest_to_self(self):
-        closest = []
-        h = []
-        for bucket in self.kbuckets:
-            for nodeid in bucket.keys():
-                xor_dist = int(self.source_node.id.hex(), 16) ^ int(nodeid.hex(), 16)
-                ip = bucket[nodeid][0]
-                port = bucket[nodeid][1]
-                heapq.heappush(h, (xor_dist, (ip, port, nodeid)))
-        for i in range(self.ksize):
-            if len(h) == 0:
-                break
-            popped = heapq.heappop(h)
-            closest.append(popped[1])
-            # If nothing else to pop
-        log.debug(f"k-closest this is *aware* of is {closest}")
-        return closest   
-
+    async def call_ping(self, address, lru_node, new_node):
+        result = await self.ping(address, self.source_node.id)
+        return self.handle_call_response(result, lru_node, new_node)
 
     async def call_store(self, node_to_ask, key, value):
         address = (node_to_ask.ip, node_to_ask.port)
         result = await self.store(address, self.source_node.id, key, value)
-        if result[0]:
-            await self.update_kbucket(address, node_to_ask.id)
-        return result
+        return self.handle_call_response(result, node_to_ask)
+
+    async def call_find_node(self, node_to_ask, node_to_find):
+        address = (node_to_ask.ip, node_to_ask.port)
+        result = await self.find_node(address, self.source_node.id, node_to_find.id)
+        return self.handle_call_response(result, node_to_ask)
 
     async def call_find_value(self, node_to_ask, key):
         address = (node_to_ask.ip, node_to_ask.port)
-        result = await self.find_value(address, self.source_node.id, key)
-        if result[0]:
-            await self.update_kbucket(address, node_to_ask.id)
-        return result[1]
-    
-    async def call_ping(self, node_to_ask_ip, node_to_ask_port, 
-                        node_to_ask_id, from_update_kbucket=False):
-        address = (node_to_ask_ip, node_to_ask_port)
-        result = await self.ping(address, self.source_node.id)
-        # Don't update kbucket if the call_ping() was invoked by an update_kbucket()
-        # to avoid infinite loop of pings
-        if from_update_kbucket == False and result[0]:
-            await self.update_kbucket(address, node_to_ask_id)
-        return result
+        result = await self.find_value(address, self.source_node.id, key.id)
+        return self.handle_call_response(result, node_to_ask)
     
     async def call_kill(self, node_to_ask_ip, node_to_ask_port):
         address = (node_to_ask_ip, node_to_ask_port)
@@ -155,45 +91,60 @@ class DavidProtocol(RPCProtocol):
         result = await self.revive(address)
         return result
     
-    # Node lookup
-    async def slingshot(self):
-        queried = set()
-        k_closest = []
-        while True:
-            added = False
-            k_closest = self.find_kclosest_to_self()
-            for triple in k_closest:
-                # node id is triple[2]
-                if triple[2] not in queried:
-                    result = await self.find_node((triple[0], triple[1]), self.source_node.id)
-                    # if you didn't receive a response
-                    if result[0] == False:
-                        continue
-                    found = result[1]
-                    if(found == self.DEAD_MSG):
-                        continue
-                    #print(found)
-                    # For the new nodes you found, just add to kbucket
-                    for triple2 in found:
-                        foundid = triple2[2]
-                        # Don't add yourself!
-                        #print(triple2[0], triple2[1])
-                        #print(self.source_node.ip, self.source_node.port)
-                        #if (triple2[0], triple2[1]) == (self.source_node.ip, self.source_node.port):
-                        if triple2[2] == self.source_node.id:
-                            #print("continuing")
-                            continue
-                            
-                        # Hack: just add to kbucket directly
-                        idx = self.get_kbucket_idx(foundid)
-                        #print(triple2[1], foundid, self.kbuckets[idx])
-                        if foundid not in self.kbuckets[idx]:
-                            #print(f"ADDING {triple2[1]}")
-                            self.kbuckets[idx][foundid] = (triple2[0], triple2[1])
-                            added = True
-                    queried.add(triple[2])
-            #print("KBCUKET", self.kbuckets)
-            if added == False:
-                break
-        log.debug(f"*Actual* k-closest is {k_closest}")
-        return k_closest
+    def handle_if_new(self, node):
+        """
+        Given a new node, send it all the keys/values it should be storing,
+        then add it to the routing table.
+
+        @param node: A new node that just joined (or that we just found out
+        about).
+
+        Process:
+        For each key in storage, get k closest nodes.  If newnode is closer
+        than the furthest in that list, and the node for this server
+        is closer than the closest in that list, then store the key/value
+        on the new node (per section 2.5 of the paper)
+        """
+        if not self.router.is_new_node(node):
+            return
+
+        log.info(f"never seen {node} before, adding to router")
+        for key, value in self.storage.items():
+            keynode = Node(digest(key))
+            neighbors = self.router.find_neighbors(keynode) # takes into consideration k-size set on init
+            # Assume neighbors returned are sorted in closest to furthest
+            if neighbors:
+                last = neighbors[-1].distance_to(keynode)
+                new_node_closer = node.distance_to(keynode) < last
+                first = neighbors[0].distance_to(keynode)
+                this_node_closest = self.source_node.distance_to(keynode) < first
+            if not neighbors or (new_node_closer and this_node_closest):
+                asyncio.ensure_future(self.call_store(node, key, value))
+
+        self.router.add_node_to_table(node)
+    
+    def handle_call_response(self, result, node, new_node=None):
+        if not result[0]:
+            log.warning(f"no response from {node}, removing from routing table")
+            self.router.remove_node_from_table(node)
+            if new_node:
+                self.router.add_node_to_table(new_node)
+            return result
+
+        log.info(f"got successful response from {node}")
+        if new_node:
+            # got successful response, need to move the new node to last
+            self.router.move_node_to_last(node)
+        self.handle_if_new(node)
+        return result
+    
+    async def _accept_request(self, msg_id, data, address):
+        """
+        Override _accept_request function for virtual kill and revive
+        """
+        funcname, _ = data
+
+        if funcname != 'revive' and (not self.alive):
+            return
+        
+        await RPCProtocol._accept_request(self, msg_id, data, address)
