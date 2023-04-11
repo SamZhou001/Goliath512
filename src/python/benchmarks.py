@@ -148,8 +148,8 @@ class Benchmark:
         return self.upload_times, self.download_times, self.download_prob
 
 if __name__ == "__main__":
+    '''
     benchmark = Benchmark()
-
     print("Running test 1 for k")
     upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1, constants.PARAMETERS_1))
     data_k_1 = {
@@ -159,7 +159,9 @@ if __name__ == "__main__":
     }
     with open('data_k_1.json', 'w') as f:
         json.dump(data_k_1, f)
-
+    '''
+    '''
+    benchmark = Benchmark()
     print("Running test 1 for n")
     upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1, constants.PARAMETERS_2))
     data_n_1 = {
@@ -169,8 +171,9 @@ if __name__ == "__main__":
     }
     with open('data_n_1.json', 'w') as f:
         json.dump(data_n_1, f)
-    
     '''
+    
+    benchmark = Benchmark()
     print("Running test 2 for k")
     upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2, constants.PARAMETERS_1))
     data_k_2 = {
@@ -181,6 +184,8 @@ if __name__ == "__main__":
     with open('data_k_2.json', 'w') as f:
         json.dump(data_k_2, f)
 
+    '''
+    benchmark = Benchmark()
     print("Running test 2 for n")
     upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2, constants.PARAMETERS_2))
     data_n_2 = {

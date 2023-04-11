@@ -161,6 +161,9 @@ async def test(network):
     time.sleep(constants.SIM_INTERVAL)
     network.download(101, cid)
     time.sleep(constants.SIM_INTERVAL)
+    network.kill_node(100)
+    time.sleep(constants.SIM_INTERVAL)
+    network.download(102, cid)
 
 if __name__ == "__main__":
     network = Network(constants.BOOTSTRAP_PORT, 3, True)
