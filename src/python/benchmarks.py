@@ -73,7 +73,6 @@ class Benchmark:
             cid = network.upload(id1, str(i), 40)
             t2 = time.perf_counter()
             sleep()
-            print(t2-t1)
             testing_pairs += [(peer_id, cid, str(i), id1) for peer_id in peer_ids if peer_id != id1]
             upload_t.append(t2-t1)
         self.upload_times[self.k][self.n_nodes][self.kill_chance] = sum(upload_t)/len(upload_t)
@@ -94,8 +93,6 @@ class Benchmark:
                     if peer_id in killed_nodes:
                         await network.revive_node(peer_id)
                         killed_nodes.remove(peer_id)
-            sleep()
-            sleep()
             sleep()
             t1 = time.perf_counter()
             network.download(id2, cid)
@@ -132,7 +129,7 @@ class Benchmark:
                 self.download_prob[k][n_nodes] = {}
                 for kill_chance in parameters['kill_chance']:
                     print(f"Progress: {counter}/{total_params}", end="\r")
-                    network = Network(constants.BOOTSTRAP_PORT, k, True)
+                    network = Network(constants.BOOTSTRAP_PORT, k, False)
                     config = constants.node_config(n_nodes)
                     peer_ids = [c['peer_id'] for c in config]
                     for c in config:
@@ -164,7 +161,7 @@ if __name__ == "__main__":
     with open('data_k_1.json', 'w') as f:
         json.dump(data_k_1, f)
     '''
-    '''
+    
     benchmark = Benchmark()
     print("Running test 1 for n")
     upload_times_1, download_times_1, download_prob_1 = asyncio.run(benchmark.full_test(1, constants.PARAMETERS_2))
@@ -175,7 +172,7 @@ if __name__ == "__main__":
     }
     with open('data_n_1.json', 'w') as f:
         json.dump(data_n_1, f)
-    '''
+    
     '''
     benchmark = Benchmark()
     print("Running test 2 for k")
@@ -188,7 +185,7 @@ if __name__ == "__main__":
     with open('data_k_2.json', 'w') as f:
         json.dump(data_k_2, f)
     '''
-    
+    '''
     benchmark = Benchmark()
     print("Running test 2 for n")
     upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2, constants.PARAMETERS_2))
@@ -199,4 +196,4 @@ if __name__ == "__main__":
     }
     with open('data_n_2.json', 'w') as f:
         json.dump(data_n_2, f)
-    
+    '''
