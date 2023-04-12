@@ -72,6 +72,8 @@ class Benchmark:
             t1 = time.perf_counter()
             cid = network.upload(id1, str(i), 40)
             t2 = time.perf_counter()
+            sleep()
+            print(t2-t1)
             testing_pairs += [(peer_id, cid, str(i), id1) for peer_id in peer_ids if peer_id != id1]
             upload_t.append(t2-t1)
         self.upload_times[self.k][self.n_nodes][self.kill_chance] = sum(upload_t)/len(upload_t)
@@ -84,7 +86,7 @@ class Benchmark:
             id2, cid, i, id1 = random.choice(testing_pairs_copy)
             testing_pairs_copy.remove((id2, cid, i, id1))
             for peer_id in peer_ids:
-                if random.random() < self.kill_chance and peer_id != id2: # kill node
+                if random.random() < self.kill_chance and peer_id != id2 and peer_id != id1: # kill node
                     if peer_id not in killed_nodes:
                         await network.kill_node(peer_id)
                         killed_nodes.append(peer_id)
@@ -93,9 +95,11 @@ class Benchmark:
                         await network.revive_node(peer_id)
                         killed_nodes.remove(peer_id)
             sleep()
+            sleep()
+            sleep()
             t1 = time.perf_counter()
             network.download(id2, cid)
-            fname = str(id1) + "_hi.txt"
+            fname = str(id1) + "_" + i + ".txt"
             for i in range(25):
                 if fname in list(os.listdir(os.path.join("./storage/", str(id2), "uploaded"))):
                     t2 = time.perf_counter()
@@ -128,7 +132,7 @@ class Benchmark:
                 self.download_prob[k][n_nodes] = {}
                 for kill_chance in parameters['kill_chance']:
                     print(f"Progress: {counter}/{total_params}", end="\r")
-                    network = Network(constants.BOOTSTRAP_PORT, k, False)
+                    network = Network(constants.BOOTSTRAP_PORT, k, True)
                     config = constants.node_config(n_nodes)
                     peer_ids = [c['peer_id'] for c in config]
                     for c in config:
@@ -172,7 +176,7 @@ if __name__ == "__main__":
     with open('data_n_1.json', 'w') as f:
         json.dump(data_n_1, f)
     '''
-    
+    '''
     benchmark = Benchmark()
     print("Running test 2 for k")
     upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2, constants.PARAMETERS_1))
@@ -183,8 +187,8 @@ if __name__ == "__main__":
     }
     with open('data_k_2.json', 'w') as f:
         json.dump(data_k_2, f)
-
     '''
+    
     benchmark = Benchmark()
     print("Running test 2 for n")
     upload_times_2, download_times_2, download_prob_2 = asyncio.run(benchmark.full_test(2, constants.PARAMETERS_2))
@@ -195,4 +199,4 @@ if __name__ == "__main__":
     }
     with open('data_n_2.json', 'w') as f:
         json.dump(data_n_2, f)
-    '''
+    
