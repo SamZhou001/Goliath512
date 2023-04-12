@@ -6,8 +6,8 @@ from david.network import Server
 from david.utils import digest
 
 
-if len(sys.argv) != 5:
-    print("Usage: python set.py <bootstrap node> <bootstrap port> <key> <value>")
+if len(sys.argv) != 3:
+    print("Usage: python set.py <key> <value>")
     sys.exit(1)
 
 handler = logging.StreamHandler()
@@ -22,11 +22,11 @@ log2.addHandler(handler)
 log2.setLevel(logging.DEBUG)
 
 async def run():
-    server = Server(node_id=digest('9010'), ksize=20)
+    server = Server(node_id=digest('9010'), ksize=5)
     await server.listen(8470)
-    bootstrap_node = (sys.argv[1], int(sys.argv[2]))
+    bootstrap_node = ('0.0.0.0', 9000)
     print(await server.bootstrap([bootstrap_node]))
-    await server.set(sys.argv[3], sys.argv[4])
+    await server.set(sys.argv[1], sys.argv[2])
     server.stop()
 
 asyncio.run(run())

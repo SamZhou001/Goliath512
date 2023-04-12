@@ -6,8 +6,8 @@ from david.network import Server
 from david.utils import digest
 
 
-if len(sys.argv) != 4:
-    print("Usage: python get.py <bootstrap node> <bootstrap port> <key>")
+if len(sys.argv) != 2:
+    print("Usage: python get.py <key>")
     sys.exit(1)
 
 handler = logging.StreamHandler()
@@ -22,11 +22,11 @@ log2.addHandler(handler)
 #log2.setLevel(logging.DEBUG)
 
 async def run():
-    server = Server(node_id = digest('8471'), ksize=20)
+    server = Server(node_id = digest('8471'), ksize=5)
     await server.listen(8471)
-    bootstrap_node = (sys.argv[1], int(sys.argv[2]))
+    bootstrap_node = ('0.0.0.0', 9000)
     print(await server.bootstrap([bootstrap_node]))
-    result = await server.get(sys.argv[3])
+    result = await server.get(sys.argv[1])
     print("Get result:", result)
     server.stop()
 

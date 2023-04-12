@@ -58,3 +58,43 @@ services:
     network_mode: "host"
     depends_on:
       - david-test-node-4
+  david-test-node-6:
+    image: david-node-6
+    build:
+      context: ./src/david
+      args:
+        PORT: 9006
+    restart: always
+    network_mode: "host"
+    depends_on:
+      - david-test-node-5
+  david-test-node-7:
+    image: david-node-7
+    build:
+      context: ./src/david
+      args:
+        PORT: 9007
+    restart: always
+    network_mode: "host"
+    depends_on:
+      - david-test-node-6
+  david-test-node-8:
+    image: david-node-8
+    build:
+      context: ./src/david
+      args:
+        PORT: 9008
+    restart: always
+    network_mode: "host"
+    depends_on:
+      - david-test-node-7
+  david-test-node-9:
+    image: david-node-9
+    build:
+      context: ./src/david
+      args:
+        PORT: 9009
+    restart: always
+    network_mode: "host"
+    depends_on:
+      - david-test-node-8

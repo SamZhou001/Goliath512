@@ -29,9 +29,10 @@ def create_rid_pairs(num):
     return [(convert_to_long_id(rid[0]), rid[1]) for rid in rids]
 
 def main():
-    KEY = 'CS512'
-    k = 6
-    long_rids = create_rid_pairs(6)
+    KEY = 'cs512'
+    k = 10
+    num_nodes_in_network = 10
+    long_rids = create_rid_pairs(num_nodes_in_network)
     # pprint(long_rids)
     k_closest = get_k_closest_nodes(KEY, long_rids, k)
     generate_msg(KEY, k_closest, k)
