@@ -31,7 +31,7 @@ PARAMETERS_1 = {
 }
 
 PARAMETERS_2 = {
-    "k": [3],
+    "k": [15],
     "nodes": [6, 12, 18, 24, 30],
     "kill_chance": [0, 0.25]
 }

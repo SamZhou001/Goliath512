@@ -13,7 +13,7 @@ from node import Node
 from bnode import BootstrapNode
 import constants
 
-
+'''
 import logging
 handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -21,7 +21,7 @@ handler.setFormatter(formatter)
 log = logging.getLogger('david')
 log.addHandler(handler)
 log.setLevel(logging.CRITICAL)
-
+'''
 
 class Network():
     def __init__(self, bnodePort, k, verbose):
@@ -57,7 +57,7 @@ class Network():
 
     def add_node(self, config):
         config['bootstrap_port'] = constants.BOOTSTRAP_PORT
-        node = Node(config, self.verbose)
+        node = Node(config, self.k, self.verbose)
         self.nodes[node.peer_id] = node
         node_worker = multiprocessing.Process(
             target=self.add_job, args=(node,))

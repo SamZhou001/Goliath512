@@ -17,7 +17,7 @@ import constants
 log = logging.getLogger(__name__)
 
 class Node(Service):
-    def __init__(self, config, verbose):
+    def __init__(self, config, k, verbose):
         self.alive = True
         self.peer_id = config['peer_id']
         self.port = config['port']
@@ -35,6 +35,7 @@ class Node(Service):
         self.timer_init = False
         self.downloading = None
         self.download_peer_list = None
+        self.k = k
         self.verbose = verbose
         self.threads = []
 
@@ -105,7 +106,7 @@ class Node(Service):
 
     # Methods for DHT operations
     async def get(self, key):
-        server = Server()
+        server = Server(ksize=self.k, temporary=True)
         await server.listen(0)
         bootstrap_node = ("127.0.0.1", self.dht_port)
         await server.bootstrap([bootstrap_node])
@@ -116,7 +117,7 @@ class Node(Service):
         return result
 
     async def set(self, key, val):
-        server = Server()
+        server = Server(ksize=self.k, temporary=True)
         await server.listen(0)
         bootstrap_node = ("127.0.0.1", self.dht_port)
         await server.bootstrap([bootstrap_node])
