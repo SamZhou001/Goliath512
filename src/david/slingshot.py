@@ -46,6 +46,7 @@ class NodeSlingShot(SlingShot):
         return await self._find(self.protocol.call_find_node)
     
     async def _nodes_found(self, responses):
+        log.debug(responses.items())
         toremove = []
         for peerid, response in responses.items():
             response = RPCFindResponse(response)
@@ -90,6 +91,7 @@ class ValueSlingShot(SlingShot):
                 self.nearest.push(response.get_node_list())
         self.nearest.remove(toremove)
 
+        log.debug(list(found_values.queue))
         if found_values.qsize() > 0:
             return await self._handle_found_values(found_values)
         if self.nearest.have_contacted_all():

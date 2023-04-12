@@ -29,6 +29,7 @@ class RoutingTable:
     
     def add_node_to_table(self, node):
         index = self.get_bucket_for(node)
+        log.debug(index)
         kbucket = self.kbuckets[index]
 
         if node.id in kbucket:

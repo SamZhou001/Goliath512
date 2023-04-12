@@ -30,7 +30,7 @@ def create_rid_pairs(num):
 
 def main():
     KEY = 'CS512'
-    k = 3
+    k = 6
     long_rids = create_rid_pairs(6)
     # pprint(long_rids)
     k_closest = get_k_closest_nodes(KEY, long_rids, k)
@@ -39,7 +39,7 @@ def main():
 def generate_msg(key, closest_nodes, k):
     nodes = [n[1][1] for n in closest_nodes]
     msg = f"For key {key}, {k} ports for the closest nodes are {nodes}"
-    pprint(msg)
+    print(msg)
 
 
 if __name__ == '__main__':

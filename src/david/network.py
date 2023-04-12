@@ -15,7 +15,7 @@ class Server:
 
     protocol_class = DavidProtocol
 
-    def __init__(self, node_id=None, ksize=3, alpha=3):
+    def __init__(self, node_id=None, ksize=20, alpha=3):
         self.node = Node(node_id or digest(random.getrandbits(255)))
         self.ksize = ksize
         self.alpha = alpha

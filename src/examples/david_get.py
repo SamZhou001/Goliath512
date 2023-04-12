@@ -22,11 +22,10 @@ log2.addHandler(handler)
 #log2.setLevel(logging.DEBUG)
 
 async def run():
-    server = Server(node_id = digest('8471'), ksize=3)
+    server = Server(node_id = digest('8471'), ksize=20)
     await server.listen(8471)
     bootstrap_node = (sys.argv[1], int(sys.argv[2]))
-    await server.bootstrap([bootstrap_node])
-
+    print(await server.bootstrap([bootstrap_node]))
     result = await server.get(sys.argv[3])
     print("Get result:", result)
     server.stop()

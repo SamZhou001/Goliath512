@@ -126,6 +126,7 @@ class DavidProtocol(RPCProtocol):
                 asyncio.ensure_future(self.call_store(node, key, value))
 
         self.router.add_node_to_table(node)
+        log.debug(self.router.get_populated_kbuckets())
     
     def handle_call_response(self, result, node, new_node=None):
         if not result[0]:

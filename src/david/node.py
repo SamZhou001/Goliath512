@@ -1,6 +1,9 @@
 from __future__ import annotations # for type hinting
 import heapq
 from operator import itemgetter
+import logging
+
+log = logging.getLogger(__name__)
 
 class Node:
     def __init__(self, node_id, ip=None, port=None):
@@ -56,11 +59,12 @@ class NodeHeap:
         self.heap = nheap
     
     def push(self, nodes):
+        # Do not add contacted nodes again can be dead and the network might not know it!
         if not isinstance(nodes, list):
             nodes = [nodes]
         
         for node in nodes:
-            if node not in self:
+            if node not in self and (node.id not in self.contacted):
                 distance = self.node.distance_to(node)
                 heapq.heappush(self.heap, (distance, node))
 
