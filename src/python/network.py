@@ -13,7 +13,7 @@ from node import Node
 from bnode import BootstrapNode
 import constants
 
-'''
+
 import logging
 handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -21,7 +21,7 @@ handler.setFormatter(formatter)
 log = logging.getLogger('david')
 log.addHandler(handler)
 log.setLevel(logging.CRITICAL)
-'''
+
 
 class Network():
     def __init__(self, bnodePort, k, verbose):
@@ -161,7 +161,7 @@ async def test(network):
     time.sleep(constants.SIM_INTERVAL)
     network.download(101, cid)
     time.sleep(constants.SIM_INTERVAL)
-    network.kill_node(100)
+    await network.kill_node(100)
     time.sleep(constants.SIM_INTERVAL)
     network.download(102, cid)
 

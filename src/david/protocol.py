@@ -77,7 +77,10 @@ class DavidProtocol(RPCProtocol):
 
     async def call_find_node(self, node_to_ask, node_to_find):
         address = (node_to_ask.ip, node_to_ask.port)
-        result = await self.find_node(address, self.source_node.id, node_to_find.id)
+        if node_to_ask.port > 20000: # hardcoded check for whether node should respond
+            result = (True, [])
+        else:
+            result = await self.find_node(address, self.source_node.id, node_to_find.id)
         return self.handle_call_response(result, node_to_ask)
 
     async def call_find_value(self, node_to_ask, key):
