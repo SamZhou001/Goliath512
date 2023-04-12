@@ -45,7 +45,8 @@ class DavidProtocol(RPCProtocol):
         self.handle_if_new(source, temporary)
         value = self.storage.get(key, None)
         if value is None:
-            return self.rpc_find_node(sender, nodeid, key)
+            log.debug("there is no value for key {key}, finding nearest nodes") 
+            return self.rpc_find_node(sender, nodeid, key, temporary)
         return {'value': value}
     
     def rpc_find_node(self, sender, sender_nodeid, key, temporary):
@@ -113,7 +114,7 @@ class DavidProtocol(RPCProtocol):
         is closer than the closest in that list, then store the key/value
         on the new node (per section 2.5 of the paper)
         """
-        if not self.router.is_new_node(node) or temporary:
+        if temporary or (not self.router.is_new_node(node)):
             return
 
         log.info(f"never seen {node} before, adding to router")
