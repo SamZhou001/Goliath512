@@ -26,7 +26,7 @@ def parse_arguments():
 
 
 def connect_to_bootstrap_node(args):
-    server = Server(node_id = digest(args.port), ksize=3)
+    server = Server(node_id = digest(args.port), ksize=5)
     loop = asyncio.new_event_loop()
     loop.set_debug(True)
 
@@ -45,7 +45,7 @@ def connect_to_bootstrap_node(args):
 
 
 def create_bootstrap_node():
-    server = Server(node_id = digest('9000'), ksize=3)
+    server = Server(node_id = digest('9000'), ksize=5)
     loop = asyncio.new_event_loop()
     loop.set_debug(True)
 

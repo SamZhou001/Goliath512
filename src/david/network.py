@@ -15,21 +15,21 @@ class Server:
 
     protocol_class = DavidProtocol
 
-    def __init__(self, node_id=None, ksize=20, alpha=3):
+    def __init__(self, node_id=None, ksize=20, alpha=3, temporary=False):
         self.node = Node(node_id or digest(random.getrandbits(255)))
         self.ksize = ksize
         self.alpha = alpha
         self.storage = OrderedDict()
         self.transport = None
         self.protocol = None
-        self.other_server_nodes = None
+        self.temporary = temporary
 
     def stop(self):
         if self.transport is not None:
             self.transport.close()
 
     def _create_protocol(self):
-        return self.protocol_class(self.node, self.storage, self.ksize)
+        return self.protocol_class(self.node, self.storage, self.ksize, self.temporary)
 
     async def listen(self, port, interface='0.0.0.0'):
         """
@@ -50,7 +50,7 @@ class Server:
         return await slingshot.find()
 
     async def bootstrap_node(self, addr):
-        result = await self.protocol.ping(addr, self.node.id)
+        result = await self.protocol.ping(addr, self.node.id, self.temporary)
         return Node(result[1], addr[0], addr[1]) if result[0] else None
     
     async def set(self, key, value):

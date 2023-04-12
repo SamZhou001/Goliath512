@@ -14,44 +14,45 @@ logging.getLogger('asyncio').setLevel(logging.CRITICAL)
 
 
 class DavidProtocol(RPCProtocol):
-    def __init__(self, source_node, storage, ksize):
+    def __init__(self, source_node, storage, ksize, temporary):
         super().__init__(wait_timeout = 1)
         self.source_node = source_node
         self.storage = storage
         self.router = RoutingTable(self, ksize, source_node)
         self.alive = True
         self.ksize = ksize
+        self.temporary = temporary
 
-    def rpc_ping(self, sender, nodeid):
+    def rpc_ping(self, sender, nodeid, temporary):
         time.sleep(0.07)
         log.debug(f'got a ping request from {sender}')
         source = Node(nodeid, sender[0], sender[1])
-        self.handle_if_new(source)
+        self.handle_if_new(source, temporary)
         return self.source_node.id
     
-    def rpc_store(self, sender, nodeid, key, value):
+    def rpc_store(self, sender, nodeid, key, value, temporary):
         time.sleep(0.07)
         log.debug(f'got a store request from {sender}, storing {int(key.hex(), 16)}={value}')
         source = Node(nodeid, sender[0], sender[1])
-        self.handle_if_new(source)
+        self.handle_if_new(source, temporary)
         self.storage[key] = value
         return True
 
-    def rpc_find_value(self, sender, nodeid, key):
+    def rpc_find_value(self, sender, nodeid, key, temporary):
         time.sleep(0.07)
         log.debug(f'got a find_value request from {sender}, finding {int(key.hex(), 16)}')
         source = Node(nodeid, sender[0], sender[1])
-        self.handle_if_new(source)
+        self.handle_if_new(source, temporary)
         value = self.storage.get(key, None)
         if value is None:
             return self.rpc_find_node(sender, nodeid, key)
         return {'value': value}
     
-    def rpc_find_node(self, sender, sender_nodeid, key):
+    def rpc_find_node(self, sender, sender_nodeid, key, temporary):
         time.sleep(0.07)
         log.debug(f'finding neighbors of {int(sender_nodeid.hex(), 16)} in local table')
         source = Node(sender_nodeid, sender[0], sender[1])
-        self.handle_if_new(source)
+        self.handle_if_new(source, temporary)
         node = Node(key)
         neighbors = self.router.find_neighbors(node, exclude=source)
         return list(map(tuple, neighbors))
@@ -67,12 +68,12 @@ class DavidProtocol(RPCProtocol):
         return self.alive
 
     async def call_ping(self, address, lru_node, new_node):
-        result = await self.ping(address, self.source_node.id)
+        result = await self.ping(address, self.source_node.id, self.temporary)
         return self.handle_call_response(result, lru_node, new_node)
 
     async def call_store(self, node_to_ask, key, value):
         address = (node_to_ask.ip, node_to_ask.port)
-        result = await self.store(address, self.source_node.id, key, value)
+        result = await self.store(address, self.source_node.id, key, value, self.temporary)
         return self.handle_call_response(result, node_to_ask)
 
     async def call_find_node(self, node_to_ask, node_to_find):
@@ -80,12 +81,12 @@ class DavidProtocol(RPCProtocol):
         if node_to_ask.port > 20000: # hardcoded check for whether node should respond
             result = (True, [])
         else:
-            result = await self.find_node(address, self.source_node.id, node_to_find.id)
+            result = await self.find_node(address, self.source_node.id, node_to_find.id, self.temporary)
         return self.handle_call_response(result, node_to_ask)
 
     async def call_find_value(self, node_to_ask, key):
         address = (node_to_ask.ip, node_to_ask.port)
-        result = await self.find_value(address, self.source_node.id, key.id)
+        result = await self.find_value(address, self.source_node.id, key.id, self.temporary)
         return self.handle_call_response(result, node_to_ask)
     
     async def call_kill(self, node_to_ask_ip, node_to_ask_port):
@@ -98,7 +99,7 @@ class DavidProtocol(RPCProtocol):
         result = await self.revive(address)
         return result
     
-    def handle_if_new(self, node):
+    def handle_if_new(self, node, temporary=False):
         """
         Given a new node, send it all the keys/values it should be storing,
         then add it to the routing table.
@@ -112,7 +113,7 @@ class DavidProtocol(RPCProtocol):
         is closer than the closest in that list, then store the key/value
         on the new node (per section 2.5 of the paper)
         """
-        if not self.router.is_new_node(node):
+        if not self.router.is_new_node(node) or temporary:
             return
 
         log.info(f"never seen {node} before, adding to router")
